@@ -181,10 +181,10 @@ class AuthController extends Controller
     public function LoginByUserName(Request $request)
     {
         $request->validate([
-            'name' => 'required',
+            'user_name' => 'required',
             'password' => 'required|min:6'
         ]);
-        $credentials = request(['name', 'password']);
+        $credentials = request(['user_name', 'password']);
 
         if (!Auth::attempt($credentials)) {
             return response()->json(['error' => 'Invalid credentials'], 401);
@@ -206,8 +206,15 @@ class AuthController extends Controller
     // Logout Method
     public function logout(Request $request)
     {
-        $request->user()->token()->revoke();
-        return response()->json(['message' => 'Successfully logged out'], 200);
+        $user = Auth::user();
+
+        if ($user) {
+            $user->token()->revoke();
+        }
+
+        return response()->json([
+            'message' => 'Logged out successfully.'
+        ], 200);
     }
 
     public function forgotPassword(Request $request)
@@ -218,7 +225,6 @@ class AuthController extends Controller
         $user->notify(new ResetPasswordVerificationNotification());
         $success['success'] = true;
         return response()->json($success,200);
-
     }
 
     public function forgotPasswordSms(Request $request)

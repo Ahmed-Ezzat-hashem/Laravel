@@ -53,6 +53,7 @@ class CategoryController extends Controller
 
         $category = new Category();
         $category->title = $request->title;
+        $category->pharmacy_id = auth()->user()->pharmacy_id;
 
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $file = $request->file('image');
@@ -63,7 +64,10 @@ class CategoryController extends Controller
         }
 
         $category->save();
-        return $category;
+        return response()->json([
+            'status' => 200,
+            'category' => $category,
+        ], 200);
     }
 
     public function update(Request $request, $id)
@@ -90,7 +94,10 @@ class CategoryController extends Controller
         }
 
         $category->save();
-        return $category;
+        return response()->json([
+            'status' => 200,
+            'category' => $category,
+        ], 200);
     }
 
     public function destroy($id)

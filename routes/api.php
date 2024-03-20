@@ -202,5 +202,5 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Auth
-    Route::get('/logout', [AuthController::class, 'logout']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 });

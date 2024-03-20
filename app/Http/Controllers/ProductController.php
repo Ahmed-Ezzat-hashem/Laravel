@@ -16,11 +16,6 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth:api');
-    }
-
     /**
      * Display a listing of the resource.
      */
@@ -42,49 +37,36 @@ class ProductController extends Controller
     }
     public function ProductPharmacy(Request $request)
     {
-        // Check if user is authenticated
-        if (Auth::check()) {
-            // Get the authenticated user
-            $user = $request->user();
 
-            // Check if the authenticated user is a pharmacy owner or employee
-            if ($user->role == 1 || $user->role == 2) {
-                // Retrieve products associated with the pharmacy
-                $products = $user->pharmacy->products()->get();
+        // Get the pharmacyId of user
+        $pharmacyId = Auth::user()->pharmacy_id;
 
-                if ($products->count() > 0) {
-                    return response()->json([
-                        'status' => 200,
-                        'products' => $products,
+        // Retrieve users with the same pharmacy_id
+        $products = DB::table('Product')
+                ->select('id',
+                'category',
+                'email',
+                'name',
+                'code',
+                'description',
+                'effective_material',
+                'price',
+                'discount',
+                'image',)
+                ->where('pharmacy_id', $pharmacyId)
+                ->get();
+
+        if ($products->count() > 0) {
+            return response()->json([
+                'status' => 200,
+                'products' => $products,
                     ], 200);
-                } else {
+            } else {
                     return response()->json([
                         'status' => 404,
                         'message' => 'No products found for the pharmacy.',
                     ], 404);
-                }
-            } else {
-                // User is not authorized to access pharmacy products
-                return response()->json([
-                    'status' => 403,
-                    'message' => 'You are not authorized to access pharmacy products.',
-                ], 403);
-            }
-        } else {
-            // User is not authenticated
-            return response()->json([
-                'status' => 401,
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+                    }
     }
 
     /**
@@ -105,18 +87,13 @@ class ProductController extends Controller
             'color' => 'required',
             'shape' => 'required',
             'code' => 'required',
-            'About' => 'required'
+            'about' => 'required'
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
 
-        // Get the authenticated admin user
-        $user = auth()->user();
+        $product->pharmacy_id = auth()->user()->pharmacy_id;
 
-        // Create the product with user_id set to the authenticated admin user's ID
-        $productCreated = Product::create(array_merge($request->all(), ['user_id' => $user->id]));
+
 
         return response()->json(['product' => $productCreated], 201);
     }
@@ -194,23 +171,16 @@ class ProductController extends Controller
             'code'  => $request->code,
 
         ]);
-        $product->status = 'published';
-        $product->save();
-        $productId = $product->id;
-        if ($request->hasFile('images')) {
-            $files = $request->file("images");
-            $i = 0;
-            foreach ($files as $file) {
-                $i = $i + 1;
-                $image = new ProductImage();
-                $image->product_id = $productId;
-                $filename = date('YmdHis') . $i . '.' . $file->getClientOriginalExtension();
-                $path = 'images';
-                $file->move($path, $filename);
-                $image->image = url('/') . '/images/' . $filename;
-                $image->save();
-            }
+
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            $file = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = public_path('images/product');
+            $file->move($path, $filename);
+            $product->image = url('/images/product/' . $filename);
         }
+
+        $product->save();
     }
 
 

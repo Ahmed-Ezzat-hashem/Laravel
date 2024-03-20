@@ -73,6 +73,11 @@ class Handler extends ExceptionHandler
             return response()->json(['message' => 'Not Found.'], 404);
         }
 
+        if ($exception instanceof AuthenticationException) {
+            // Token has expired
+            return response()->json(['error' => 'Session has ended. Please log in again.'], 401);
+        }
+
         return parent::render($request, $exception);
     }
 }

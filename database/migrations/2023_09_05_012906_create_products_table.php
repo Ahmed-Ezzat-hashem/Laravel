@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             //PHARMACY ID
             $table->foreignId('pharmacy_id')->references('id')->on('pharmacies')->onDelete('cascade');
+            $table->foreignId('category_id')->references('id')->on('categories')->onDelete('cascade');
             $table->unsignedBigInteger('category')->nullable();
             $table->text('title')->nullable();
             $table->text('description');
