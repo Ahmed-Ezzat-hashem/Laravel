@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Product;
+use App\Models\category;
 use App\Models\Pharmacy;
 use App\Models\ProductImage;
 use Carbon\Carbon;
@@ -21,7 +22,6 @@ class ProductController extends Controller
      */
     public function index()
     {
-        //return Product::with('Images')->where('status', '=', 'published')->get();
         $product = Product::all();
         if($product->count()>0){
         return response()->json([
@@ -35,6 +35,24 @@ class ProductController extends Controller
             ],404);
         }
     }
+
+    public function bycat($categoryId)
+    {
+        $products = Product::where('category_id', $categoryId)->get();
+
+        if ($products->count() > 0) {
+            return response()->json([
+                'status' => 200,
+                'products' => $products,
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 404,
+                'message' => 'No products found for the given category ID.',
+            ], 404);
+        }
+    }
+
     public function ProductPharmacy(Request $request)
     {
 
@@ -43,7 +61,8 @@ class ProductController extends Controller
 
         // Retrieve users with the same pharmacy_id
         $products = DB::table('Product')
-                ->select('id',
+                ->select(
+                'id',
                 'category',
                 'email',
                 'name',
@@ -75,27 +94,37 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'category_id' => 'required|exists:categories,id',
             'name' => 'required',
             'description' => 'required',
-            'category' => 'required',
-            'title' => 'required',
             'price' => 'required|numeric',
             'discount' => 'required|numeric',
-            'type' => 'required',
-            'product_origin' => 'required',
             'effective_material' => 'required',
-            'color' => 'required',
-            'shape' => 'required',
             'code' => 'required',
-            'about' => 'required'
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        $product = Product::create([
+            'category_id'=> $request->category_id,
+            'name'=> $request->name,
+            'description'=> $request->description,
+            'price'=> $request->price,
+            'discount'=> $request->discount,
+            'effective_material'=> $request->effective_material,
+            'code'=> $request->code,
+        ]);
 
         $product->pharmacy_id = auth()->user()->pharmacy_id;
 
+        // Handle file uploads
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            $file = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = public_path('images/product');
+            $file->move($path, $filename);
+            $request->image = url('/images/product/' . $filename);
+        }
 
-
-        return response()->json(['product' => $productCreated], 201);
     }
 
 
@@ -111,8 +140,19 @@ class ProductController extends Controller
         if($product->count()>0){
             return response()->json([
                 'status'=> 200,
-                'products'=> $product,
-        ],200);
+                'product'=>[
+                    'id'=>$Product->id,
+                    'category'=>$Product->category,
+                    'email'=>$Product->email,
+                    'name'=>$Product->name,
+                    'code'=>$Product->code,
+                    'description'=>$Product->description,
+                    'effective_material'=>$Product->effective_material,
+                    'price'=>$Product->price,
+                    'discount'=>$Product->discount,
+                    'image'=>$Product->image,
+                    ]
+            ],200);
             }else{
             return response()->json([
                 'status'=> 404,
@@ -136,42 +176,36 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         $request->validate([
-            'name'=>'required',
-            'description'=>'required',
-            'category'=>'required',
-            'price' => 'required | numeric',
-            'discount' => 'required | numeric',
-            'type'=>'required',
-            'product_origin'=>'required',
-            'effective_material'=>'required',
-            'color'=>'required',
-            'shap'=>'required',
-            'code'=>'required | numeric',
-            'about' => 'required'
+            'category_id' => 'required|exists:categories,id',
+            'name' => 'required',
+            'description' => 'required',
+            'price' => 'required|numeric',
+            'discount' => 'required|numeric',
+            'effective_material' => 'required',
+            'code' => 'required',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
         }
         $product->update([
-            'category' => $request->category,
-            'title'  => $request->title,
-            'description'  => $request->description,
-            'rating'  => $request->rating,
-            'ratings_number'  => $request->ratings_number,
-            'price'  => $request->price,
-            'discount'  => $request->discount,
-            'about'  => $request->About,
-            'status'  => $request->status,
-            'name'  => $request->name,
-            'type'  => $request->type,
-            'product_origin'  => $request->product_origin,
-            'effective_material'  => $request->effective_material,
-            'color'  => $request->color,
-            'shap'  => $request->shap,
-            'code'  => $request->code,
-
+            'category_id'=> $request->category_id,
+            'name'=> $request->name,
+            'description'=> $request->description,
+            'price'=> $request->price,
+            'discount'=> $request->discount,
+            'effective_material'=> $request->effective_material,
+            'code'=> $request->code,
         ]);
 
+        if ($product->image) {
+            $oldImagePath = public_path('images/product/' . basename($product->image));
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
+            }
+        }
+
+        // Handle file upload for the new image
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $file = $request->file('image');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -181,6 +215,23 @@ class ProductController extends Controller
         }
 
         $product->save();
+
+
+        return response()->json([
+            'status'=> 200,
+            'product'=>[
+                'id'=>$Product->id,
+                'category'=>$Product->category,
+                'email'=>$Product->email,
+                'name'=>$Product->name,
+                'code'=>$Product->code,
+                'description'=>$Product->description,
+                'effective_material'=>$Product->effective_material,
+                'price'=>$Product->price,
+                'discount'=>$Product->discount,
+                'image'=>$Product->image,
+                ]
+        ],200);
     }
 
 
@@ -190,14 +241,20 @@ class ProductController extends Controller
      */
     public function destroy($id)
     {
-        $productImages = ProductImage::where('product_id', '=', $id)->get();
-        foreach ($productImages as $productImage) {
-            $path = public_path() . '/images/' . substr($productImage['image'], strrpos($productImage['image'], '/') + 1);
-            if (File::exists($path)) {
-                File::delete($path);
+        $product = Product::findOrFail($id);
+
+        // Delete associated image(s) if they exist
+        if ($product->image) {
+            $oldImagePath = public_path('images/product/' . basename($product->image));
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
             }
         }
-        DB::table('products')->where('id', '=', $id)->delete();
+
+        // Delete the product from the database
+        $product->delete();
+
+        return response()->json(['message' => 'Product deleted successfully'], 200);
     }
 
 
@@ -211,16 +268,29 @@ class ProductController extends Controller
         $name = $request->input('name');
 
         $products = Product::with('Images')
-            ->where('status', '=', 'published')
             ->where('name', 'LIKE', "%{$name}%")
             ->get();
 
-        return $products;
+            return response()->json([
+                'status'=> 200,
+                'product'=>[
+                    'id'=>$Product->id,
+                    'category'=>$Product->category,
+                    'email'=>$Product->email,
+                    'name'=>$Product->name,
+                    'code'=>$Product->code,
+                    'description'=>$Product->description,
+                    'effective_material'=>$Product->effective_material,
+                    'price'=>$Product->price,
+                    'discount'=>$Product->discount,
+                    'image'=>$Product->image,
+                    ]
+            ],200);
     }
 
 
 
-    public function searchByProductCode(Request $request)
+    public function searchByCode(Request $request)
     {
         $request->validate([
             'code' => 'required|string'
@@ -229,11 +299,24 @@ class ProductController extends Controller
         $code = $request->input('code');
 
         $products = Product::with('Images')
-            ->where('status', '=', 'published')
             ->where('code', $code)
             ->get();
 
-        return $products;
+            return response()->json([
+                'status'=> 200,
+                'product'=>[
+                    'id'=>$Product->id,
+                    'category'=>$Product->category,
+                    'email'=>$Product->email,
+                    'name'=>$Product->name,
+                    'code'=>$Product->code,
+                    'description'=>$Product->description,
+                    'effective_material'=>$Product->effective_material,
+                    'price'=>$Product->price,
+                    'discount'=>$Product->discount,
+                    'image'=>$Product->image,
+                    ]
+            ],200);
     }
 
 
@@ -254,6 +337,20 @@ class ProductController extends Controller
             ->where('shap', $shape)
             ->get();
 
-        return $products;
+            return response()->json([
+                'status'=> 200,
+                'product'=>[
+                    'id'=>$Product->id,
+                    'category'=>$Product->category,
+                    'email'=>$Product->email,
+                    'name'=>$Product->name,
+                    'code'=>$Product->code,
+                    'description'=>$Product->description,
+                    'effective_material'=>$Product->effective_material,
+                    'price'=>$Product->price,
+                    'discount'=>$Product->discount,
+                    'image'=>$Product->image,
+                    ]
+            ],200);
     }
 }

@@ -33,8 +33,8 @@ return new class extends Migration
             $table->text('effective_material');
             $table->string('color')->nullable();
             $table->string('shap')->nullable();
-            $table->string('code');
-            $table->string('image');
+            $table->string('code')->nullable();
+            $table->string('image')->nullable();
             $table->timestamps();
         });
     }

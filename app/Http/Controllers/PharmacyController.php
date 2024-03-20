@@ -43,8 +43,14 @@ class PharmacyController extends Controller
         // Exclude individual ratings from the response
         unset($pharmacy->ratings);
 
-        return response()->json($pharmacy, 200);
+        return response()->json([
+            'status' => 200,
+            'message' => 'Pharmacy updated successfully',
+            'pharmacy' => $pharmacy ,
+        ], 200);
     }
+
+
 
     public function update(Request $request, string $id)
     {
@@ -68,7 +74,8 @@ class PharmacyController extends Controller
 
         return response()->json([
             'status' => 200,
-            'message' => 'Pharmacy updated successfully'
+            'message' => 'Pharmacy updated successfully',
+            'pharmacy' => $pharmacy ,
         ], 200);
     }
 
