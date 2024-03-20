@@ -20,17 +20,19 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'id',
-        'full_name',
-        'name',
+        'pharmacy_id',
+        'user_name',
         'phone',
         'email',
         'email_verified_at',
         'password',
         'role',
+
         'google_id',
         'google_token',
         'facebook_id',
         'facebook_token',
+
         'company_name',
         'company_phone',
         'delivary_area',
@@ -62,4 +64,34 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function prescriptions()
+    {
+        return $this->hasMany(Prescription::class);
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class);
+    }
+
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
+
+    public function pharmacy()
+    {
+        return $this->hasOne(Pharmacy::class);
+    }
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
 }

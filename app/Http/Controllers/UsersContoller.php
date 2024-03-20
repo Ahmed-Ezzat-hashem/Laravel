@@ -11,24 +11,31 @@ use Illuminate\Support\Facades\Hash;
 
 class UsersContoller extends Controller
 {
-    public function GetUsers()
+    public function getUsers(Request $request)
     {
-        return User::all();
-    }
-    // Get Auth User
-    public function authUser()
-    {
-        return Auth::user();
-    }
+        // Get the authenticated user's pharmacy_id
+        $pharmacyId = Auth::user()->pharmacy_id;
 
-    // Get Specific User
-    public function getUser($id)
-    {
-        return User::findOrFail($id);
+        // Retrieve users with the same pharmacy_id
+        $users = DB::table('users')
+            ->select('id', 'user_name', 'email', 'phone', 'role')
+            ->where('pharmacy_id', $pharmacyId)
+            ->get();
+
+        // Check if any users are found
+        if ($users->isEmpty()) {
+            return response()->json([
+                'message' => 'No users found for this pharmacy.'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Users retrieved successfully.',
+            'users' => $users
+        ], 200);
     }
 
     // Add User
-
     public function addUser(Request $request)
     {
         $request->validate([
@@ -36,31 +43,33 @@ class UsersContoller extends Controller
             'email' => 'required|email|unique:users',
             'phone' => 'required|unique:users',
             'password' => 'required|min:6',
-            'company_name' =>'required',
-            'company_phone' =>'required',
-            'delivary_area' =>'required',
-            'company_working_hours' =>'required',
-            'company_manager_name' =>'required',
-            'company_manager_phone' =>'required',
-
-            'role' => 'required'
+            'role' => 'required|in:1,2'
         ]);
+
+        $pharmacyId = auth()->user()->pharmacy_id;
+
         $user =  DB::table('users')->insert([
-            'full_name' =>$request->full_name,
-            'name' =>$request->name,
+            'user_name' =>$request->user_name,
             'email' =>$request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'company_name' =>$request->company_name,
-            'company_phone' =>$request->company_phone,
-            'delivary_area' =>$request->delivary_area,
-            'company_working_hours' =>$request->company_working_hours,
-            'company_manager_name' =>$request->company_manager_name,
-            'company_manager_phone' =>$request->company_manager_phone,
             'role' => $request->role,
+            'pharmacy_id' => $pharmacyId,
         ]);
+
+        // Create Profile entry
+        $profile = Profile::create([
+            'user_id' => $user->id,
+            'first_name' => $request->user_name,
+            'phone_number'=>$user->phone,
+        ]);
+
         return response()->json([
-            'user' => $user,
+            'message' => 'User Added successfully.',
+            'id' => $user->id,
+            'user_name' => $user->user_name,
+            'phone' => $user->phone,
+            'email' => $user->email,
         ], 200);
     }
 
@@ -68,30 +77,17 @@ class UsersContoller extends Controller
     public function editUser(Request $request, $id)
     {
         $request->validate([
-            'name' => 'required|unique:users',
+            'user_name' => 'required|unique:users',
             'email' => 'required|email|unique:users',
             'phone' => 'required|unique:users',
             'password' => 'sometimes|min:6', // Optional password change
-            'company_name' => 'required',
-            'company_phone' => 'required',
-            'delivary_area' => 'required',
-            'company_working_hours' => 'required',
-            'company_manager_name' => 'required',
-            'company_manager_phone' => 'required',
-            'role' => 'required'
+            'role' => 'required|in:1,2'
         ]);
 
         $userData = [
-            'full_name' => $request->full_name,
-            'name' => $request->name,
+            'user_name' => $request->user_name,
             'email' => $request->email,
             'phone' => $request->phone,
-            'company_name' => $request->company_name,
-            'company_phone' => $request->company_phone,
-            'delivary_area' => $request->delivary_area,
-            'company_working_hours' => $request->company_working_hours,
-            'company_manager_name' => $request->company_manager_name,
-            'company_manager_phone' => $request->company_manager_phone,
             'role' => $request->role,
         ];
 
@@ -104,6 +100,7 @@ class UsersContoller extends Controller
 
         return response()->json([
             'user' => $user,
+            'message' => 'User and updated successfully.'
         ], 200);
     }
 
@@ -111,6 +108,12 @@ class UsersContoller extends Controller
     // Delete User
     public function destroy($id)
     {
-        return  User::findOrFail($id)->delete();
+        $user = User::findOrFail($id);
+        $user->profile()->delete();
+        $user->delete();
+
+        return response()->json([
+            'message' => 'User and associated profile deleted successfully.'
+        ], 200);
     }
 }

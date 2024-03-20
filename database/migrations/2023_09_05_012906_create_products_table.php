@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
+            //PHARMACY ID
+            $table->foreignId('pharmacy_id')->references('id')->on('pharmacies')->onDelete('cascade');
             $table->unsignedBigInteger('category')->nullable();
             $table->text('title')->nullable();
             $table->text('description');
@@ -20,10 +22,10 @@ return new class extends Migration
             $table->string('ratings_number')->default(0);
             $table->string('price');
             $table->string('discount')->default(0);
-            $table->text('About');
-            $table->string('status')->default('draft');
+            $table->text('about');
+            //$table->enum('status', ['published', 'draft'])->default('draft');
             $table->foreign('category')->references('id')->on('categories')->onDelete('cascade')->onUpdate('cascade');
-            //old
+            //old zip
             $table->string('name');
             $table->string('type')->nullable();
             $table->string('product_origin');
@@ -31,6 +33,7 @@ return new class extends Migration
             $table->string('color')->nullable();
             $table->string('shap')->nullable();
             $table->string('code');
+            $table->string('image');
             $table->timestamps();
         });
     }

@@ -10,29 +10,42 @@ use Illuminate\Http\Request;
 use Laravel\Passport\RefreshTokenRepository;
 use Laravel\Passport\TokenRepository;
 use Illuminate\Support\Facades\Password;
+use App\Models\Profile;
+use App\Models\Pharmacy;
+
 //use App\Http\Requests\Auth\ForgetPasswordRequest;
 use App\Notifications\ResetPasswordVerificationNotification;
 use App\Notifications\ResetPasswordVerificationNotificationSMS;
 use Otp;
 class AuthController extends Controller
 {
+    protected function login(Request $request): ?string
+    {
+        return null;
+    }
+
     // Register Method
 
     public function registerUser(Request $request)
     {
         $request->validate([
-            'name' => 'required|unique:users',
-            'full_name' => 'required',
+            'user_name' => 'required|unique:users',
             'phone' => 'required|unique:users',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
     ]);
+
         $user = User::create([
-            'name' => $request->name,
-            'full_name' => $request->full_name,
-            'phone' => $request->phone,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+        'user_name' => $request->user_name,
+        'phone' => $request->phone,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        ]);
+
+        $profile = Profile::create([
+            'user_id' => $user->id,
+            'first_name' => $request->user_name,
+            'phone_number'=>$user->phone,
         ]);
         $token = $user->createToken('token')->accessToken;
         $refreshToken = $user->createToken('authTokenRefresh')->accessToken;
@@ -46,8 +59,7 @@ class AuthController extends Controller
     public function registerPharmacy(Request $request)
     {
         $request->validate([
-            'full_name' => 'required',
-            'name' => 'required|unique:users',
+            'user_name' => 'required|unique:users',
             'email' => 'required|email|unique:users',
             'phone' => 'required|unique:users',
             'password' => 'required|min:6|confirmed',
@@ -57,13 +69,13 @@ class AuthController extends Controller
             'company_working_hours' =>'required',
             'company_manager_name' =>'required',
             'company_manager_phone' =>'required',
-            'commercial_register' =>'required',
-            'tax_card' =>'required',
-            'company_license' =>'required',
+            'commercial_register' =>'nullable|file|mimes:pdf|max:10240',
+            'tax_card' =>'nullable|file|mimes:pdf|max:10240',
+            'company_license' =>'nullable|file|mimes:pdf|max:10240',
         ]);
         $user = User::create([
-            'full_name' =>$request->full_name,
-            'name' =>$request->name,
+            'role'=>'1',
+            'user_name' =>$request->user_name,
             'email' =>$request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
@@ -73,18 +85,72 @@ class AuthController extends Controller
             'company_working_hours' =>$request->company_working_hours,
             'company_manager_name' =>$request->company_manager_name,
             'company_manager_phone' =>$request->company_manager_phone,
-            'commercial_register' =>$request->commercial_register,
-            'tax_card' =>$request->tax_card,
-            'company_license' =>$request->company_license,
         ]);
+
+        // Handle file uploads
+        if ($request->hasFile('commercial_register') && $request->file('commercial_register')->isValid()) {
+            $file = $request->file('commercial_register');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = public_path('images/commercial_register');
+            $file->move($path, $filename);
+            $request->commercial_register = url('/images/commercial_register/' . $filename);
+        }
+
+        if ($request->hasFile('tax_card') && $request->file('tax_card')->isValid()) {
+            $file = $request->file('tax_card');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = public_path('images/tax_card');
+            $file->move($path, $filename);
+            $request->tax_card = url('/images/tax_card/' . $filename);
+        }
+
+        if ($request->hasFile('company_license') && $request->file('company_license')->isValid()) {
+            $file = $request->file('company_license');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = public_path('images/company_license');
+            $file->move($path, $filename);
+            $request->company_license = url('/images/company_license/' . $filename);
+        }
+
+        // Create Profile entry
+        $profile = Profile::create([
+            'user_id' => $user->id,
+            'first_name' => $request->user_name,
+            'phone_number'=>$user->phone,
+        ]);
+
+        // Create pharmacy entry
+        $pharmacy = Pharmacy::create([
+            'user_id' => $user->id,
+            'name' => $request->company_name,
+            'address' => $request->delivary_area,
+            'phone'=> $request->phone,
+        ]);
+
+        //connect the owner with his pharmacy
+        $user->update(['pharmacy_id' => $pharmacy->id]);
+
         $token = $user->createToken('token')->accessToken;
         $refreshToken = $user->createToken('authTokenRefresh')->accessToken;
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
 
+        return response()->json([
+            'message' => 'Pharmacy registered successfully.',
+            'id' => $user->id,
+            'user_name' => $user->user_name,
+            'phone' => $user->phone,
+            'email' => $user->email,
+            'role' => $user->role,
+            'token' => $token,
         ], 200);
     }
+
+
+
+
+        //LOGIN
+
+
+
 
     public function LoginByEmail(Request $request)
     {
@@ -102,7 +168,11 @@ class AuthController extends Controller
         $token = $user->createToken('token')->accessToken;
 
         return response()->json([
-            'user' => $user,
+            'id' => $user->id,
+            'user_name' => $user->user_name,
+            'phone' => $user->phone,
+            'email' => $user->email,
+            'role' => $user->role,
             'token' => $token,
         ], 200);
     }
@@ -124,7 +194,11 @@ class AuthController extends Controller
         $token = $user->createToken('token')->accessToken;
 
         return response()->json([
-            'user' => $user,
+            'id' => $user->id,
+            'user_name' => $user->user_name,
+            'phone' => $user->phone,
+            'email' => $user->email,
+            'role' => $user->role,
             'token' => $token,
         ], 200);
     }
@@ -199,4 +273,9 @@ class AuthController extends Controller
             $success['success'] = true;
             return response()->json($success,200);
         }
+
+        public function checkProjectStatus(Request $request)
+    {
+        return response()->json(['status' => 'Project is running on the internet.']);
+    }
 }

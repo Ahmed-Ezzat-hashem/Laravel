@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
+            //PHARMACY ID
+            $table->foreignId('pharmacy_id')->references('id')->on('pharmacies')->onDelete('cascade');
             $table->text('title');
             $table->string('image');
             $table->timestamps();

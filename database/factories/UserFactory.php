@@ -22,7 +22,7 @@ class UserFactory extends Factory
             'name' => "admin",
             'email' => 'admin@gmail.com',
             'email_verified_at' => now(),
-            'role' => '1995',
+            'role' => '0',
             'password' => Hash::make('admin123$%'), // password
             'remember_token' => Str::random(10),
         ];

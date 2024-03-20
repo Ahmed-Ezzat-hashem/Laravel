@@ -9,6 +9,7 @@ class Product extends Model
 {
     use HasFactory;
     protected $fillable = [
+        'user_id',
         'category',
         'title',
         'description',
@@ -16,7 +17,7 @@ class Product extends Model
         'ratings_number',
         'price',
         'discount',
-        'About',
+        'about',
         'status',
         'name',
         'type',
@@ -25,12 +26,19 @@ class Product extends Model
         'color',
         'shap',
         'code',
+        'image',
     ];
 
     public function Category()
     {
         return $this->belongsTo(Category::class);
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     //order table relation
     // public function Order()
     // {

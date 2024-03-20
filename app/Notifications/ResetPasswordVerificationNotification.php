@@ -46,7 +46,7 @@ class ResetPasswordVerificationNotification extends Notification
         return (new MailMessage)
         ->mailer( 'smtp' )
         ->subject($this->subject)
-        ->greeting( 'Hello MR.'.$notifiable->name)
+        ->greeting( 'Hello '.$notifiable->user_name)
         ->line($this->message)
         ->line('code :'. $otp->token);
     }

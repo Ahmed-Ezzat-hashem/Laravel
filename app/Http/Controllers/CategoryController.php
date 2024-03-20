@@ -5,24 +5,44 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Http\Response;
+
 
 class CategoryController extends Controller
 {
     public function index()
     {
-        return Category::all();
+        $category = Category::all();
+        if($category->count()>0){
+        return response()->json([
+            'status'=> 200,
+            'category'=> $category,
+    ],200);
+        }else{
+        return response()->json([
+            'status'=> 404,
+            'message'=> 'no categories found',
+            ],404);
+        }
     }
 
     public function show(Request $request, $id)
     {
-        $category = Category::findOrFail($id);
+        $category = Category::find($id);
+
+        if (!$category) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'Category not found',
+            ], 404);
+        }
+
         return response()->json([
-            'id' => $category->id,
-            'title' => $category->title,
-            'image' => $category->image,
-            // Add other attributes you want to display
-        ]);
+            'status' => 200,
+            'category' => $category,
+        ], 200);
     }
+
 
     public function store(Request $request)
     {
