@@ -46,7 +46,10 @@ class OrderProductController extends Controller
     public function getOrderItems($orderId)
     {
         $orderItems = OrderProduct::where('order_id', $orderId)->with('product')->get();
-        return response()->json(['order_items' => $orderItems], 200);
+        return response()->json([
+            'status' => 200,
+            'orderItems' => $orderItems,
+        ], 200);
     }
 
 

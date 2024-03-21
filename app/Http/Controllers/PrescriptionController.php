@@ -7,6 +7,27 @@ use Illuminate\Support\Facades\Storage;
 
 class PrescriptionController extends Controller
 {
+    public function index()
+    {
+        // Get the authenticated user's ID
+        $userId = Auth::id();
+
+        // Query prescriptions associated with the authenticated user
+        $prescriptions = Prescription::where('user_id', $userId)->get();
+
+        // Check if prescriptions exist
+        if ($prescriptions->isEmpty()) {
+            return response()->json(['message' => 'No prescriptions found for the authenticated user.'], 404);
+        }
+
+        // Return the prescriptions
+        return response()->json([
+            'status' => 200,
+            'prescriptions' => $prescriptions,
+    ], 200);
+    }
+
+
     public function store(Request $request)
     {
         $request->validate([

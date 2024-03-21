@@ -8,29 +8,33 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Retrieve the authenticated user
         $user = Auth::user();
 
-
+        // Retrieve orders based on user role
         if ($user->role == 0) {
             // Retrieve all orders associated with the user by their ID
-            $orders = Order::where('user_id', $user->id)->get();
-            return response()->json([
-                'status' => 200,
-                'orders' => $orders
-            ], 200);
-
+            $orders = Order::where('user_id', $user->id);
         } else {
             // Retrieve all orders associated with the pharmacy by its ID
-            $orders = Order::where('pharmacy_id', $user->pharmacy_id)->get();
-            return response()->json([
-                'status' => 200,
-                'orders' => $orders
-            ], 200);
+            $orders = Order::where('pharmacy_id', $user->pharmacy_id);
         }
 
+        // Filter orders based on status if provided in the request
+        if ($request->has('status')) {
+            $status = $request->status;
+            $orders->where('status', $status);
+        }
+
+        // Get the filtered orders
+        $filteredOrders = $orders->get();
+
+        return response()->json([
+            'status' => 200,
+            'orders' => $filteredOrders
+        ], 200);
     }
 
     /**

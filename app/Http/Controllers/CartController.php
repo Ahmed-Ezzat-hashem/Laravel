@@ -15,7 +15,7 @@ class CartController extends Controller
     {
         // Retrieve all items from the cart associated with the authenticated user
         $user = Auth::user();
-        $cartItems = $user->Cart()->get();
+        $cartItems = $user->Cart()->with('product')->get();
         if ($cartItems->isNotEmpty()) {
             return response()->json([
                 'status' => 200,
@@ -48,7 +48,10 @@ class CartController extends Controller
             'quantity' => $request->quantity,
         ]);
 
-        return response()->json(['cart_item' => $cartItem], 201);
+        return response()->json([
+            'status' => 200,
+            'cart_item' => $cartItem,
+        ], 200);
     }
 
     /**
@@ -68,7 +71,10 @@ class CartController extends Controller
         $cartItem->quantity = $request->quantity;
         $cartItem->save();
 
-        return response()->json(['cart_item' => $cartItem], 200);
+        return response()->json([
+            'status' => 200,
+            'cart_item' => $cartItem,
+        ], 200);
     }
 
     /**
@@ -85,41 +91,54 @@ class CartController extends Controller
 
 
 
-    public function checkout()
+    public function checkout(Request $request)
     {
         $user = Auth::user();
-        $cartItems = $user->Cart()->get();
+        $cartItems = $user->cart()->with('product')->get();
 
         if ($cartItems->isEmpty()) {
             return response()->json(['message' => 'No items in the cart'], 404);
         }
 
-        // Calculate total amount
-        $totalAmount = 0;
-        foreach ($cartItems as $cartItem) {
-            $totalAmount += $cartItem->product->price * $cartItem->quantity;
-        }
+        // Group cart items by pharmacy ID
+        $groupedCartItems = $cartItems->groupBy('product.pharmacy_id');
 
-        // Create a new order
-        $order = Order::create([
-            'user_id' => $user->id,
-            'total_amount' => $totalAmount,
-            'status' => 'pending',
-        ]);
+        // Process each group of cart items
+        foreach ($groupedCartItems as $pharmacyId => $items) {
+            // Calculate total amount for this group of cart items
+            $totalAmount = $this->calculateTotalAmount($items);
 
-        // Create order products
-        foreach ($cartItems as $cartItem) {
-            OrderProduct::create([
-                'order_id' => $order->id,
-                'product_id' => $cartItem->product_id,
-                'quantity' => $cartItem->quantity,
+            // Create a new order for this pharmacy
+            $order = Order::create([
+                'user_id' => $user->id,
+                'pharmacy_id' => $pharmacyId,
+                'total_amount' => $totalAmount,
+                'status' => 'New Order',
+
+                'tracking_number' => $request->input('tracking_number'),
+                'country' => $request->input('country'),
+                'street_name' => $request->input('street_name'),
+                'city' => $request->input('city'),
+                'state_province' => $request->input('state_province'),
+                'zip_code' => $request->input('zip_code'),
+                'phone_number' => $request->input('phone_number'),
+                'coupon_code' => $request->input('coupon_code'),
             ]);
+
+            // Create order products
+            foreach ($items as $cartItem) {
+                OrderProduct::create([
+                    'order_id' => $order->id,
+                    'product_id' => $cartItem->product_id,
+                    'quantity' => $cartItem->quantity,
+                ]);
+            }
         }
 
         // Delete cart items
-        $user->Cart()->delete();
+        $user->cart()->delete();
 
-        return response()->json(['message' => 'Order created successfully', 'order' => $order], 201);
+        return response()->json(['message' => 'Order(s) created successfully'], 201);
     }
 
     /**
@@ -127,10 +146,6 @@ class CartController extends Controller
      */
     private function calculateTotalAmount($cartItems)
     {
-        // Implement the logic to calculate the total amount based on cart items
-        // You can sum the prices of all items in the cart, apply discounts, etc.
-        // For demonstration, let's assume each product has a price attribute
-
         $totalAmount = 0;
 
         foreach ($cartItems as $cartItem) {

@@ -3,7 +3,6 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\socialAuthController;
 use App\Http\Controllers\UsersContoller;
 
@@ -15,6 +14,7 @@ use App\Http\Controllers\PharmacyController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
+use App\Http\Controllers\FavoriteProductController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -57,36 +57,6 @@ Route::controller(socialAuthController::class)->group(function () {
 
 Route::get('/project-status', [AuthController::class,'checkProjectStatus']);
 
-Route::controller(CategoryController::class)->group(function () {
-    Route::post('/category/edit/{id}', 'update');
-    Route::post('/category/add', 'store');
-    Route::delete('/category/{id}', 'destroy');
-});
-
-Route::controller(CategoryController::class)->group(function () {
-    Route::get('/categories', 'index');
-    Route::get('/category/{id}', 'show');
-});
-
-
-Route::controller(ProductController::class)->group(function () {
-    Route::get('/products', 'index');
-    Route::get('/products-Pharmacy', 'ProductPharmacy');
-    Route::get('/product/{id}', 'show');
-    Route::post('/search-by-product-code','searchByProductCode');
-    Route::post('/search-by-color-and-shape','searchByColorAndShape');
-    });
-
-    Route::controller(ProductController::class)->group(function () {
-        Route::post('/product/edit/{id}', 'update');
-        Route::post('/product/add', 'store');
-        Route::delete('/product/{id}', 'destroy');
-    });
-
-    Route::controller(ProductImageController::class)->group(function () {
-        Route::post('/product-img/add', 'store');
-        Route::delete('/product-img/{id}', 'destroy');
-    });
 
 // Protected Routes
 Route::middleware('auth:api')->group(function () {
@@ -100,57 +70,62 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/user/{id}', 'destroy');
     });
 //-----------------------------------------------------------------------------------------------
-    // Category Manger
-    // Route::middleware('checkAdmin')->controller(CategoryController::class)->group(function () {
-    //     Route::post('/category/edit/{id}', 'update');
-    //     Route::post('/category/add', 'store');
-    //     Route::delete('/category/{id}', 'destroy');
-    // });
+    //Category Manger
+    Route::middleware('checkAdmin')->controller(CategoryController::class)->group(function () {
+        Route::post('/category/edit/{id}', 'update');
+        Route::post('/category/add', 'store');
+        Route::delete('/category/{id}', 'destroy');
+    });
 
-    // Route::controller(CategoryController::class)->group(function () {
-    //     Route::get('/categories', 'index');
-    //     Route::get('/category/{id}', 'show');
-    // });
+    Route::controller(CategoryController::class)->group(function () {
+        Route::get('/categories', 'index');
+        Route::get('/category/{id}', 'show');
+    });
 
 //-----------------------------------------------------------------------------------------------
 
-    // Route::middleware('checkAdmin')->controller(ProductController::class)->group(function () {
-    //     Route::post('/product/edit/{id}', 'update');
-    //     Route::post('/product/add', 'store');
-    //     Route::delete('/product/{id}', 'destroy');
-    // });
+    Route::middleware('checkAdmin')->controller(ProductController::class)->group(function () {
+        Route::post('/product/edit/{id}', 'update');
+        Route::post('/product/add', 'store');
+        Route::delete('/product/{id}', 'destroy');
+    });
 
-    // Route::middleware('CheckAdmin')->controller(ProductImageController::class)->group(function () {
-    //     Route::post('/product-img/add', 'store');
-    //     Route::delete('/product-img/{id}', 'destroy');
-    // });
+    Route::controller(ProductController::class)->group(function () {
+    Route::get('/products', 'index');
+    Route::get('/category/{categoryId}', 'bycat');
+    Route::get('/products-Pharmacy', 'ProductPharmacy');
+    Route::get('/product/{id}', 'show');
+    Route::post('/search-by-product-code','searchByProductCode');
+    Route::post('/search-by-color-and-shape','searchByColorAndShape');
+    Route::post('/search-by-Code', 'searchByCode');
+    });
 
-    // Route::controller(ProductController::class)->group(function () {
-    // Route::get('/products', 'index');
-    // Route::get('/products-Pharmacy', 'ProductPharmacy');
-    // Route::get('/product/{id}', 'show');
-    // Route::post('/search-by-product-code','searchByProductCode');
-    // Route::post('/search-by-color-and-shape','searchByColorAndShape');
-    // });
+    Route::controller(FavoriteProductController::class)->group(function () {
+        Route::get('/favorite-products', 'index');
+        Route::post('/favorite-products', 'store');
+        Route::delete('/favorite-products/{id}', 'destroy');
+        });
+
 
 //-----------------------------------------------------------------------------------------------
 
     // Cart
     Route::controller(CartController::class)->group(function () {
-        Route::get('/cart', 'index');
-        Route::post('/cart/add', 'store');
-        Route::post('/cart/remove', 'destroy');
+        Route::get('/cart', [CartController::class, 'index']);
+        Route::post('/cart', [CartController::class, 'store']);
+        Route::put('/cart/{id}', [CartController::class, 'update']);
+        Route::delete('/cart/{id}', [CartController::class, 'destroy']);
+        Route::post('/checkout', [CartController::class, 'checkout']);
     });
 
 //-----------------------------------------------------------------------------------------------
 
     // Order
     Route::controller(OrderContoller::class)->group(function () {
-        Route::get('/orders', 'index');
-        Route::get('/order/{id}', 'show');
-        Route::post('/order/add', 'store');
-        Route::post('/order/update/{id}', 'update');
-        Route::delete('/order/{id}', 'destroy');
+        Route::get('/orders','index');
+        Route::put('/orders/{id}','updateOrderStatus');
+        Route::delete('/orders/{id}','destroy');
+
     });
 
 //-----------------------------------------------------------------------------------------------
@@ -167,7 +142,6 @@ Route::middleware('auth:api')->group(function () {
     Route::controller(PharmacyController::class)->group(function () {
         Route::get('/pharmacies', 'index');
         Route::get('/pharmacy/{id}', 'show');
-        Route::post('/pharmacy/add', 'store');
         Route::post('/pharmacy/edit/{id}', 'update');
         Route::delete('/pharmacy/{id}', 'destroy');
     });
@@ -187,10 +161,9 @@ Route::middleware('auth:api')->group(function () {
 
     // Profile
     Route::controller(ProfileController::class)->group(function () {
-        Route::get('/profile', 'show');
-        Route::post('/profile/edit', 'update');
-        Route::post('/profile/change-password', 'changePassword');
-        Route::delete('/profile/delete', 'destroy');
+        Route::get('profile/{id}', 'show');
+        Route::post('profile/{id}', 'update');
+        Route::post('profile/{id}/profile-pic', 'profilePic');
     });
 
 //-----------------------------------------------------------------------------------------------

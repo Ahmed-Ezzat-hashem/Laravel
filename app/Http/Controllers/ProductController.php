@@ -104,27 +104,34 @@ class ProductController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
         $product = Product::create([
-            'category_id'=> $request->category_id,
-            'name'=> $request->name,
-            'description'=> $request->description,
-            'price'=> $request->price,
-            'discount'=> $request->discount,
-            'effective_material'=> $request->effective_material,
-            'code'=> $request->code,
+            'category_id' => $request->category_id,
+            'name' => $request->name,
+            'description' => $request->description,
+            'price' => $request->price,
+            'discount' => $request->discount,
+            'effective_material' => $request->effective_material,
+            'code' => $request->code,
         ]);
 
-        $product->pharmacy_id = auth()->user()->pharmacy_id;
-
-        // Handle file uploads
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $file = $request->file('image');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = public_path('images/product');
             $file->move($path, $filename);
-            $request->image = url('/images/product/' . $filename);
+            $product->image = url('/images/product/' . $filename);
+            $product->save();
         }
 
+        return response()->json([
+            'status' => 200,
+            'message' => 'Product created successfully',
+            'product' => $product,
+        ], 200);
     }
 
 
