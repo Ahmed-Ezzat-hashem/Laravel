@@ -62,7 +62,7 @@ Route::controller(socialAuthController::class)->group(function () {
 
 
 // Protected Routes
-Route::middleware(['checkToken'])->group(function () {
+Route::middleware(['checkToken','auth:api'])->group(function () {
     // Users
     Route::get('/user', [UsersContoller::class, 'authUser']);
     Route::middleware('checkAdmin')->controller(UsersContoller::class)->group(function () {

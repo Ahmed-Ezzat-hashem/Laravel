@@ -71,7 +71,6 @@ class CategoryController extends Controller
         ], 200);
     }
 
-
     public function store(Request $request)
     {
         $request->validate([
@@ -79,9 +78,22 @@ class CategoryController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Adjust file types and size as needed
         ]);
 
+        // Check if user is authenticated
+        if(auth()->check()) {
+            // Get authenticated user's pharmacy_id
+            $pharmacy_id = auth()->user()->pharmacy_id;
+        } else {
+            // Handle the case where user is not authenticated
+            // You may want to return an error response or redirect the user to login
+            return response()->json([
+                'status' => 401,
+                'message' => 'Unauthorized in cat',
+            ], 401);
+        }
+
         $category = new Category();
         $category->title = $request->title;
-        $category->pharmacy_id = auth()->user()->pharmacy_id;
+        $category->pharmacy_id = $pharmacy_id;
 
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $file = $request->file('image');

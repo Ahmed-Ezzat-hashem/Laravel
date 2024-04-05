@@ -16,7 +16,7 @@ return new class extends Migration
             //PHARMACY ID
             $table->foreignId('pharmacy_id')->references('id')->on('pharmacies')->onDelete('cascade');
             $table->foreignId('category_id')->references('id')->on('categories')->onDelete('cascade');
-            $table->unsignedBigInteger('category')->nullable();
+            $table->string('category');
             $table->text('title')->nullable();
             $table->text('description');
             $table->string('rating')->default(0);
@@ -25,7 +25,6 @@ return new class extends Migration
             $table->string('discount')->default(0);
             $table->text('about')->nullable();
             //$table->enum('status', ['published', 'draft'])->default('draft');
-            $table->foreign('category')->references('id')->on('categories')->onDelete('cascade')->onUpdate('cascade');
             //old zip
             $table->string('name');
             $table->string('type')->nullable();

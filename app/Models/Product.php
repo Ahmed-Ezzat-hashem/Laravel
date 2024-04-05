@@ -12,6 +12,7 @@ class Product extends Model
         'user_id',
         'pharmacy_id',
         'category_id',
+        'category',
         'title',
         'description',
         'rating',
@@ -46,9 +47,4 @@ class Product extends Model
     //     return $this->belongsTo(Order::class);
     // }
 
-
-    public function Images()
-    {
-        return $this->hasMany(ProductImage::class);
-    }
 }

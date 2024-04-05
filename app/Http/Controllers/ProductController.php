@@ -54,53 +54,62 @@ class ProductController extends Controller
         }
     }
 
+
     public function ProductPharmacy(Request $request)
     {
-        // Get the pharmacyId of the user
-        $pharmacyId = Auth::user()->pharmacy_id;
+        try {
 
-        // Retrieve products with the same pharmacy_id
-        $products = DB::table('products')
-            ->select(
-                'id',
-                'category',
-                'name',
-                'code',
-                'description',
-                'effective_material',
-                'price',
-                'discount',
-                'image'
-            )
-            ->where('pharmacy_id', $pharmacyId)
-            ->get();
+            // Get the pharmacyId of the user
+            $pharmacyId = Auth::user()->pharmacy_id;
 
-        $imageBaseUrl = env('APP_URL')  ; // Retrieve the base URL from .env
+            // Retrieve products with the same pharmacy_id
+            $products = DB::table('products')
+                ->select(
+                    'id',
+                    'category',
+                    'name',
+                    'code',
+                    'description',
+                    'effective_material',
+                    'price',
+                    'discount',
+                    'image'
+                )
+                ->where('pharmacy_id', $pharmacyId)
+                ->get();
 
-        if ($products->count() > 0) {
-            $productsArray = $products->map(function ($product) use ($imageBaseUrl) {
-                $imageUrl = $imageBaseUrl . $product->image;
-                return [
-                    'id' => $product->id,
-                    'category' => $product->category,
-                    'name' => $product->name,
-                    'code' => $product->code,
-                    'description' => $product->description,
-                    'effective_material' => $product->effective_material,
-                    'price' => $product->price,
-                    'discount' => $product->discount,
-                    'image' => $imageUrl,
-                ];
-            });
+            $imageBaseUrl = env('APP_URL')  ; // Retrieve the base URL from .env
 
-            return response()->json([
-                'status' => 200,
-                'products' => $productsArray,
-            ], 200);
-        } else {
+            if ($products->count() > 0) {
+                $productsArray = $products->map(function ($product) use ($imageBaseUrl) {
+                    $imageUrl = $imageBaseUrl . $product->image;
+                    return [
+                        'id' => $product->id,
+                        'category' => $product->category,
+                        'name' => $product->name,
+                        'code' => $product->code,
+                        'description' => $product->description,
+                        'effective_material' => $product->effective_material,
+                        'price' => $product->price,
+                        'discount' => $product->discount,
+                        'image' => $imageUrl,
+                    ];
+                });
+
+                return response()->json([
+                    'status' => 200,
+                    'products' => $productsArray,
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => 404,
+                    'error' => 'No products found for the pharmacy.',
+                ], 404);
+            }
+        } catch (\Throwable $th) {
             return response()->json([
                 'status' => 404,
-                'message' => 'No products found for the pharmacy.',
+                'error' => 'mshkal in try catch',
             ], 404);
         }
     }
@@ -125,11 +134,17 @@ class ProductController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return response()->json(['error' => "validation error"], 400);
+        }
+
+        $category = Category::find($request->category_id);
+        if (!$category) {
+            return response()->json(['error' => "Category not found"], 404);
         }
 
         $product = Product::create([
             'category_id' => $request->category_id,
+            'category' => $category->title,
             'pharmacy_id'=>$pharmacyId,
             'name' => $request->name,
             'description' => $request->description,
@@ -186,7 +201,7 @@ class ProductController extends Controller
         } else {
             return response()->json([
                 'status' => 404,
-                'message' => 'No product found',
+                'error' => 'No product found',
             ], 404);
         }
     }
@@ -209,7 +224,7 @@ class ProductController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return response()->json(['error' => "validation error"], 400);
         }
         $product->update([
             'category_id'=> $request->category_id,
@@ -300,7 +315,7 @@ class ProductController extends Controller
         if ($products->isEmpty()) {
             return response()->json([
                 'status' => 404,
-                'message' => 'No products found with the given name.'
+                'error' => 'No products found with the given name.'
             ], 404);
         }
 
@@ -342,7 +357,7 @@ class ProductController extends Controller
         if ($products->isEmpty()) {
             return response()->json([
                 'status' => 404,
-                'message' => 'No products found with the given code.'
+                'error' => 'No products found with the given code.'
             ], 404);
         }
 
@@ -390,7 +405,7 @@ class ProductController extends Controller
         } else {
             return response()->json([
                 'status' => 404,
-                'message' => 'No products found for the given color and shape.',
+                'error' => 'No products found for the given color and shape.',
             ], 404);
         }
     }
