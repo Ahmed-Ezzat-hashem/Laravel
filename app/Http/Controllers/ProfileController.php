@@ -15,7 +15,12 @@ class ProfileController extends Controller
         // Retrieve the profile based on the provided user ID
         $profile = Profile::where('user_id', $id)->first();
 
+
         if ($profile) {
+
+            if ($profile->profile_picture) {
+                $profile->profile_picture = url($profile->profile_picture);
+            }
             return response()->json([
                 'status' => 200,
                 'profile' => $profile,
@@ -56,15 +61,17 @@ class ProfileController extends Controller
         }
     }
 
-    public function profilePic(Request $request, $id)
+    public function profilePic(Request $request)
     {
+        $userid = Auth::user()->id;
+
         // Validate request data
         $request->validate([
             'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         // Find the profile by user ID
-        $profile = Profile::where('user_id', $id)->first();
+        $profile = Profile::where('user_id', $userid)->first();
 
         // Handle profile picture upload
         if ($request->hasFile('profile_picture') && $request->file('profile_picture')->isValid()) {
@@ -81,8 +88,9 @@ class ProfileController extends Controller
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = public_path('images/profile_pictures');
             $file->move($path, $filename);
-            $profile->profile_picture = url('/images/profile_pictures/' . $filename);
+            $profile->profile_picture = '/images/profile_pictures/' . $filename;
             $profile->save();
+            $profile->profile_picture = url('/images/profile_pictures/' . $filename);
 
             return response()->json(['message' => 'Profile picture updated successfully.'], 200);
         } else {

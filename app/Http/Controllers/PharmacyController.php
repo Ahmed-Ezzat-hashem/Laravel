@@ -14,12 +14,15 @@ class PharmacyController extends Controller
         // Calculate average rating for each pharmacy
         $pharmaciesWithAverageRating = $pharmacies->map(function ($pharmacy) {
             $ratings = $pharmacy->ratings->pluck('rating');
-            $averageRating = $ratings->avg();
+
+            // Calculate average rating or set it to 0 if no ratings exist
+            $averageRating = $ratings->isEmpty() ? 0 : $ratings->avg();
 
             return [
                 'id' => $pharmacy->id,
                 'name' => $pharmacy->name,
                 'address' => $pharmacy->address,
+                'image' => url($pharmacy->image),
                 'average_rating' => $averageRating,
             ];
         });
@@ -38,15 +41,22 @@ class PharmacyController extends Controller
             return response()->json(['message' => 'Pharmacy not found'], 404);
         }
 
-        $pharmacy->average_rating = $pharmacy->calculateRating();
+        // Calculate average rating for the pharmacy
+        $ratings = $pharmacy->ratings->pluck('rating');
+        $averageRating = $ratings->isEmpty() ? 0 : $ratings->avg();
 
-        // Exclude individual ratings from the response
-        unset($pharmacy->ratings);
+        // Construct the response array
+        $response = [
+            'id' => $pharmacy->id,
+            'name' => $pharmacy->name,
+            'address' => $pharmacy->address,
+            'image' => url($pharmacy->image),
+            'average_rating' => $averageRating,
+        ];
 
         return response()->json([
             'status' => 200,
-            'message' => 'Pharmacy updated successfully',
-            'pharmacy' => $pharmacy ,
+            'pharmacy' => $response,
         ], 200);
     }
 
@@ -84,8 +94,9 @@ class PharmacyController extends Controller
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = public_path('images/pharmacy_pictures');
             $file->move($path, $filename);
-            $pharmacy->image = url('/images/pharmacy_pictures/' . $filename);
+            $pharmacy->image = '/images/pharmacy_pictures/' . $filename;
             $pharmacy->save();
+            $pharmacy->image = url('/images/pharmacy_pictures/' . $filename);
         }
 
         return response()->json([

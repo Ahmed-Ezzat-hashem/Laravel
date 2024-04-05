@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -10,19 +11,39 @@ use Illuminate\Http\Response;
 
 class CategoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $category = Category::all();
-        if($category->count()>0){
-        return response()->json([
-            'status'=> 200,
-            'category'=> $category,
-    ],200);
-        }else{
-        return response()->json([
-            'status'=> 404,
-            'message'=> 'no categories found',
-            ],404);
+        $userRole = Auth::user()->role;
+
+        if ($userRole == 0) {
+            $categories = Category::all();
+        } else {
+            $pharmacyId = Auth::user()->pharmacy_id;
+            $categories = Category::where('pharmacy_id', $pharmacyId)->get();
+        }
+
+        if ($categories->count() > 0) {
+            $imageBaseUrl = env('APP_URL'); // Retrieve the base URL from .env
+
+            $categoriesArray = $categories->map(function ($category) use ($imageBaseUrl) {
+                $imageUrl = $imageBaseUrl . $category->image;
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'description' => $category->description,
+                    'image' => $imageUrl,
+                ];
+            });
+
+            return response()->json([
+                'status' => 200,
+                'categories' => $categoriesArray,
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 404,
+                'message' => 'No categories found.',
+            ], 404);
         }
     }
 
@@ -37,9 +58,16 @@ class CategoryController extends Controller
             ], 404);
         }
 
+        $categoryData = [
+            'id' => $category->id,
+            'name' => $category->name,
+            'description' => $category->description,
+            'image' => url($category->image),
+        ];
+
         return response()->json([
             'status' => 200,
-            'category' => $category,
+            'category' => $categoryData,
         ], 200);
     }
 
@@ -60,10 +88,11 @@ class CategoryController extends Controller
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = public_path('images/category');
             $file->move($path, $filename);
-            $category->image = url('/images/category/' . $filename);
+            $category->image = '/images/category/' . $filename;
         }
-
         $category->save();
+
+        $category->image = url('/images/category/' . $filename);
         return response()->json([
             'status' => 200,
             'category' => $category,
@@ -90,10 +119,13 @@ class CategoryController extends Controller
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = public_path('images/category');
             $file->move($path, $filename);
-            $category->image = url('/images/category/' . $filename);
+            $category->image = '/images/category/' . $filename;
         }
 
         $category->save();
+        //for the pharmacy to check the full path
+        $category->image = url('/images/category/' . $filename);
+
         return response()->json([
             'status' => 200,
             'category' => $category,

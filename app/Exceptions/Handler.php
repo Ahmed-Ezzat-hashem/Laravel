@@ -2,62 +2,35 @@
 
 namespace App\Exceptions;
 
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Auth;
 
 class Handler extends ExceptionHandler
 {
     /**
-     * A list of exception types with their corresponding custom log levels.
-     *
-     * @var array<class-string<\Throwable>, \Psr\Log\LogLevel::*>
-     */
-    protected $levels = [
-        //
-    ];
-
-    /**
      * A list of the exception types that are not reported.
      *
-     * @var array<int, class-string<\Throwable>>
+     * @var array
      */
     protected $dontReport = [
         //
     ];
 
     /**
-     * A list of the inputs that are never flashed to the session on validation exceptions.
+     * Report or log an exception.
      *
-     * @var array<int, string>
-     */
-    protected $dontFlash = [
-        'current_password',
-        'password',
-        'password_confirmation',
-    ];
-
-    /**
-     * Register the exception handling callbacks for the application.
-     */
-    public function register(): void
-    {
-        $this->reportable(function (Throwable $e) {
-            //
-        });
-    }
-
-    /**
-     * Convert an authentication exception into a response.
+     * @param  \Throwable  $exception
+     * @return void
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Illuminate\Auth\AuthenticationException  $exception
-     * @return \Illuminate\Http\JsonResponse
+     * @throws \Exception
      */
-    protected function unauthenticated($request, AuthenticationException $exception)
+    public function report(Throwable $exception)
     {
-        return response()->json(['message' => 'Unauthenticated.'], 401);
+        parent::report($exception);
     }
 
     /**
@@ -65,19 +38,41 @@ class Handler extends ExceptionHandler
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Throwable  $exception
-     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
+     *
+     * @throws \Throwable
      */
     public function render($request, Throwable $exception)
     {
-        if ($exception instanceof NotFoundHttpException) {
-            return response()->json(['message' => 'Not Found.'], 404);
-        }
-
-        if ($exception instanceof AuthenticationException) {
-            // Token has expired
-            return response()->json(['error' => 'Session has ended. Please log in again.'], 401);
-        }
-
         return parent::render($request, $exception);
+    }
+
+    /**
+     * Convert an authentication exception into an unauthenticated response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Auth\AuthenticationException  $exception
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
+     */
+    //response()->json(['error' => 'ahaUnauthenticated.']);
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+    //     $token = $request->header('Authorization');
+
+    //     if ($exception->guards()[0] === 'api') {
+    //         return response()->json([
+    //             'error' => 'Unauthenticated.',
+    //             'token' => $request->bearerToken(),
+    //         ], Response::HTTP_UNAUTHORIZED);
+    //     }
+
+    //     return response()->json([
+    //         'error' => 'The token wasn\'t sent or is expired.',
+    //         'token' => $request->header('Authorization'),
+    //     ]);
+    return response()->json([
+        'error' => 'Unauthenticated.',
+        'token' => $request->bearerToken(), // You may need to adjust this based on your middleware logic
+    ], Response::HTTP_UNAUTHORIZED);
     }
 }

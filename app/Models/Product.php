@@ -10,6 +10,7 @@ class Product extends Model
     use HasFactory;
     protected $fillable = [
         'user_id',
+        'pharmacy_id',
         'category_id',
         'title',
         'description',
@@ -24,7 +25,7 @@ class Product extends Model
         'product_origin',
         'effective_material',
         'color',
-        'shap',
+        'shape',
         'code',
         'image',
     ];

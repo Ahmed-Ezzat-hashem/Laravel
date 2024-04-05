@@ -23,16 +23,16 @@ return new class extends Migration
             $table->string('ratings_number')->default(0);
             $table->string('price');
             $table->string('discount')->default(0);
-            $table->text('about');
+            $table->text('about')->nullable();
             //$table->enum('status', ['published', 'draft'])->default('draft');
             $table->foreign('category')->references('id')->on('categories')->onDelete('cascade')->onUpdate('cascade');
             //old zip
             $table->string('name');
             $table->string('type')->nullable();
-            $table->string('product_origin');
-            $table->text('effective_material');
+            $table->string('product_origin')->nullable();
+            $table->text('effective_material')->nullable();
             $table->string('color')->nullable();
-            $table->string('shap')->nullable();
+            $table->string('shape')->nullable();
             $table->string('code')->nullable();
             $table->string('image')->nullable();
             $table->timestamps();

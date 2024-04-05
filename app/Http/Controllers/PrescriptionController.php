@@ -20,39 +20,49 @@ class PrescriptionController extends Controller
             return response()->json(['message' => 'No prescriptions found for the authenticated user.'], 404);
         }
 
-        // Return the prescriptions
+        // Prepare prescriptions data with image URLs
+        $prescriptionsData = $prescriptions->map(function ($prescription) {
+            $imageUrl = ''; // Set default image URL
+            if (!empty($prescription->image)) {
+                $imageUrl = env('APP_URL') . '/storage/' . $prescription->image;
+            }
+            return [
+                'id' => $prescription->id,
+                'image' => $imageUrl,
+                // Add other attributes as needed
+            ];
+        });
+
+        // Return the prescriptions with image URLs
         return response()->json([
             'status' => 200,
-            'prescriptions' => $prescriptions,
-    ], 200);
+            'prescriptions' => $prescriptionsData,
+        ], 200);
     }
 
 
     public function store(Request $request)
     {
+        $userId = Auth::id();
         $request->validate([
-            'user_id' => 'required|exists:users,id',
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Max 2MB
         ]);
 
 
         // Create a new prescription record
         $prescription = Prescription::create([
-            'user_id' => $request->user_id,
+            'user_id' => $userId,
         ]);
 
         // Handle the prescription image upload
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $file = $request->file('image');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $path = 'images/prescription'; // Storage path relative to the public disk
-
-            // Store the image in the storage folder
-            $file->storeAs($path, $filename);
-
-            // Update the prescription with the image path
-            $prescription->image = $filename;
+            $path = 'images/prescription';
+            $file->move($path, $filename);
+            $prescription->image = '/images/prescription/' . $filename;
             $prescription->save();
+            $prescription->image = env('APP_URL') . '/storage' . '/images/product/' . $filename;
         } else {
             // If image upload fails, delete the prescription record
             $prescription->delete();
@@ -66,49 +76,82 @@ class PrescriptionController extends Controller
         ], 201);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $prescription = Prescription::findOrFail($id);
+        // Find the prescription by ID
+        $prescription = Prescription::find($id);
 
-        // Check if the prescription image exists
-        if (Storage::exists($prescription->image)) {
-            // Get the image content and return it as a response
-            $imageContent = Storage::get($prescription->image);
-            return response($imageContent)->header('Content-Type', 'image/jpeg');
+        // Check if prescription exists
+        if (!$prescription) {
+            return response()->json(['message' => 'Prescription not found.'], 404);
         }
 
-        return response()->json(['message' => 'Prescription image not found'], 404);
+        // Prepare prescription data with image URL
+        $imageUrl = ''; // Set default image URL
+        if (!empty($prescription->image)) {
+            $imageUrl = env('APP_URL') . '/storage/' . $prescription->image;
+        }
+
+        $prescriptionData = [
+            'id' => $prescription->id,
+            'image' => $imageUrl,
+            // Add other attributes as needed
+        ];
+
+        // Return the prescription with image URL
+        return response()->json([
+            'status' => 200,
+            'prescription' => $prescriptionData,
+        ], 200);
     }
 
     public function update(Request $request, $id)
     {
-        // Validate request data
+        // Find the prescription by ID
+        $prescription = Prescription::find($id);
+
+        // Check if prescription exists
+        if (!$prescription) {
+            return response()->json(['message' => 'Prescription not found.'], 404);
+        }
+
+        // Validate the request data
         $request->validate([
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Max 2MB
         ]);
 
-        // Find the prescription by ID
-        $prescription = Prescription::findOrFail($id);
-
-        // Update prescription data
+        // Handle the prescription image upload
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
-            // Delete the existing image from storage
-            if (Storage::exists($prescription->image)) {
+            // Delete the previous image if exists
+            if (!empty($prescription->image)) {
                 Storage::delete($prescription->image);
             }
 
-            // Store the new image in the storage folder
-            $imagePath = $request->file('image')->store('images/prescription');
-
-            // Update the prescription with the new image path
-            $prescription->image = url('/images/prescription/' . $imagePath);
+            $file = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = 'images/prescription';
+            $file->move($path, $filename);
+            $prescription->image = '/images/prescription/' . $filename;
         }
 
+        // Save the updated prescription
         $prescription->save();
 
+        // Prepare prescription data with image URL
+        $imageUrl = ''; // Set default image URL
+        if (!empty($prescription->image)) {
+            $imageUrl = env('APP_URL') . '/storage/' . $prescription->image;
+        }
+
+        $prescriptionData = [
+            'id' => $prescription->id,
+            'image' => $imageUrl,
+        ];
+
+        // Return the response with the updated prescription
         return response()->json([
-            'message' => 'Prescription updated successfully.',
-            'image_url' => $prescription->image, // Include the image URL in the response
+            'status' => 200,
+            'prescription' => $prescriptionData,
         ], 200);
     }
 

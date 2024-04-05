@@ -16,7 +16,6 @@ return new class extends Migration
             //PHONE USER ID
             $table->foreignId('user_id')->references('id')->on('users')->onDelete('cascade');
             //PHARMACY ID
-            $table->foreignId('pharmacy_id')->references('id')->on('pharmacies')->onDelete('cascade');
             $table->foreignId('product_id')->references('id')->on('products')->onDelete('cascade')->onUpdate('cascade');
             $table->integer('quantity')->unsigned()->default(1);
             $table->timestamps();

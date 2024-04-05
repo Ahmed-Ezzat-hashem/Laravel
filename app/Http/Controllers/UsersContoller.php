@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Profile;
 
 class UsersContoller extends Controller
 {
@@ -39,7 +40,7 @@ class UsersContoller extends Controller
     public function addUser(Request $request)
     {
         $request->validate([
-            'name' => 'required|unique:users',
+            'user_name' => 'required|unique:users',
             'email' => 'required|email|unique:users',
             'phone' => 'required|unique:users',
             'password' => 'required|min:6',
@@ -48,9 +49,9 @@ class UsersContoller extends Controller
 
         $pharmacyId = auth()->user()->pharmacy_id;
 
-        $user =  DB::table('users')->insert([
-            'user_name' =>$request->user_name,
-            'email' =>$request->email,
+        $user = User::create([
+            'user_name' => $request->user_name,
+            'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
             'role' => $request->role,

@@ -34,10 +34,14 @@ use Illuminate\Support\Facades\Route;
 // Public Routes
 Route::controller(AuthController::class)->group(function () {
     Route::post('/register-user', 'registerUser');
+    Route::post('/register-verify', 'otpVerfication');
+    Route::post('/resend-otp','resendOtp');
+
     Route::post('/register-pharmacy', 'registerPharmacy');
     //login
     Route::post('/login-username', 'LoginByUserName');
     Route::post('/login-email', 'LoginByEmail');
+    Route::post('/login-phone', 'LoginByPhone');
     //reset password by sent otp in sms
     Route::post('password/forgot-password-sms', 'forgotPasswordSms');
     Route::post('password/reset-sms','passwordResetSms');
@@ -55,11 +59,10 @@ Route::controller(socialAuthController::class)->group(function () {
     Route::get('/auth/facebook/callback', 'handleFacebookCallback');
 });
 
-Route::get('/project-status', [AuthController::class,'checkProjectStatus']);
 
 
 // Protected Routes
-Route::middleware('auth:api')->group(function () {
+Route::middleware(['checkToken'])->group(function () {
     // Users
     Route::get('/user', [UsersContoller::class, 'authUser']);
     Route::middleware('checkAdmin')->controller(UsersContoller::class)->group(function () {
@@ -69,6 +72,7 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/user/add', 'addUser');
         Route::delete('/user/{id}', 'destroy');
     });
+
 //-----------------------------------------------------------------------------------------------
     //Category Manger
     Route::middleware('checkAdmin')->controller(CategoryController::class)->group(function () {
@@ -90,17 +94,17 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/product/{id}', 'destroy');
     });
 
-    Route::controller(ProductController::class)->group(function () {
-    Route::get('/products', 'index');
-    Route::get('/category/{categoryId}', 'bycat');
-    Route::get('/products-Pharmacy', 'ProductPharmacy');
-    Route::get('/product/{id}', 'show');
-    Route::post('/search-by-product-code','searchByProductCode');
-    Route::post('/search-by-color-and-shape','searchByColorAndShape');
-    Route::post('/search-by-Code', 'searchByCode');
+    Route::middleware('checkToken')->controller(ProductController::class)->group(function () {
+        Route::get('/products', 'index');
+        Route::get('/category/{categoryId}', 'bycat');
+        Route::get('/products-Pharmacy', 'ProductPharmacy');
+        Route::get('/product/{id}', 'show');
+        Route::get('/search-by-name','searchByName');
+        Route::get('/search-by-code', 'searchByCode');
+        Route::get('/search-by-color-and-shape','searchByColorAndShape');
     });
 
-    Route::controller(FavoriteProductController::class)->group(function () {
+    Route::middleware('checkUser')->controller(FavoriteProductController::class)->group(function () {
         Route::get('/favorite-products', 'index');
         Route::post('/favorite-products', 'store');
         Route::delete('/favorite-products/{id}', 'destroy');
@@ -110,12 +114,12 @@ Route::middleware('auth:api')->group(function () {
 //-----------------------------------------------------------------------------------------------
 
     // Cart
-    Route::controller(CartController::class)->group(function () {
-        Route::get('/cart', [CartController::class, 'index']);
-        Route::post('/cart', [CartController::class, 'store']);
-        Route::put('/cart/{id}', [CartController::class, 'update']);
-        Route::delete('/cart/{id}', [CartController::class, 'destroy']);
-        Route::post('/checkout', [CartController::class, 'checkout']);
+    Route::middleware('checkUser')->controller(CartController::class)->group(function () {
+        Route::get('/cart' , 'index');
+        Route::post('/cart', 'store');
+        Route::put('/cart/{id}', 'update');
+        Route::delete('/cart/{id}', 'destroy');
+        Route::post('/checkout', 'checkout');
     });
 
 //-----------------------------------------------------------------------------------------------
@@ -175,5 +179,5 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Auth
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/logout', [AuthController::class, 'logout']);
 });

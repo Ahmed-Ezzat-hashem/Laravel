@@ -22,70 +22,87 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $product = Product::all();
-        if($product->count()>0){
-        return response()->json([
-            'status'=> 200,
-            'product'=> $product,
-    ],200);
-        }else{
-        return response()->json([
-            'status'=> 404,
-            'message'=> 'no products found',
-            ],404);
-        }
-    }
-
-    public function bycat($categoryId)
-    {
-        $products = Product::where('category_id', $categoryId)->get();
+        $products = Product::all();
+        $imageBaseUrl = env('APP_URL') ; // Retrieve the base URL from .env
 
         if ($products->count() > 0) {
+            $productsArray = $products->map(function ($product) use ($imageBaseUrl) {
+                $imageUrl = $imageBaseUrl . $product->image;
+                return [
+                    'id' => $product->id,
+                    'category' => $product->category,
+                    'email' => $product->email,
+                    'name' => $product->name,
+                    'code' => $product->code,
+                    'description' => $product->description,
+                    'effective_material' => $product->effective_material,
+                    'price' => $product->price,
+                    'discount' => $product->discount,
+                    'image' => $imageUrl,
+                ];
+            });
+
             return response()->json([
                 'status' => 200,
-                'products' => $products,
+                'products' => $productsArray,
             ], 200);
         } else {
             return response()->json([
                 'status' => 404,
-                'message' => 'No products found for the given category ID.',
+                'message' => 'No products found',
             ], 404);
         }
     }
 
     public function ProductPharmacy(Request $request)
     {
-
-        // Get the pharmacyId of user
+        // Get the pharmacyId of the user
         $pharmacyId = Auth::user()->pharmacy_id;
 
-        // Retrieve users with the same pharmacy_id
-        $products = DB::table('Product')
-                ->select(
+        // Retrieve products with the same pharmacy_id
+        $products = DB::table('products')
+            ->select(
                 'id',
                 'category',
-                'email',
                 'name',
                 'code',
                 'description',
                 'effective_material',
                 'price',
                 'discount',
-                'image',)
-                ->where('pharmacy_id', $pharmacyId)
-                ->get();
+                'image'
+            )
+            ->where('pharmacy_id', $pharmacyId)
+            ->get();
+
+        $imageBaseUrl = env('APP_URL')  ; // Retrieve the base URL from .env
 
         if ($products->count() > 0) {
+            $productsArray = $products->map(function ($product) use ($imageBaseUrl) {
+                $imageUrl = $imageBaseUrl . $product->image;
+                return [
+                    'id' => $product->id,
+                    'category' => $product->category,
+                    'name' => $product->name,
+                    'code' => $product->code,
+                    'description' => $product->description,
+                    'effective_material' => $product->effective_material,
+                    'price' => $product->price,
+                    'discount' => $product->discount,
+                    'image' => $imageUrl,
+                ];
+            });
+
             return response()->json([
                 'status' => 200,
-                'products' => $products,
-                    ], 200);
-            } else {
-                    return response()->json([
-                        'status' => 404,
-                        'message' => 'No products found for the pharmacy.',
-                    ], 404);
-                    }
+                'products' => $productsArray,
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 404,
+                'message' => 'No products found for the pharmacy.',
+            ], 404);
+        }
     }
 
     /**
@@ -93,6 +110,9 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+
+        $pharmacyId = Auth::user()->pharmacy_id;
+
         $validator = Validator::make($request->all(), [
             'category_id' => 'required|exists:categories,id',
             'name' => 'required',
@@ -110,6 +130,7 @@ class ProductController extends Controller
 
         $product = Product::create([
             'category_id' => $request->category_id,
+            'pharmacy_id'=>$pharmacyId,
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
@@ -123,8 +144,10 @@ class ProductController extends Controller
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = public_path('images/product');
             $file->move($path, $filename);
-            $product->image = url('/images/product/' . $filename);
+            $product->image = '/images/product/' . $filename;
             $product->save();
+            //for the pharmacy to check the full path
+            $product->image = env('APP_URL')   . '/images/product/' . $filename;
         }
 
         return response()->json([
@@ -143,38 +166,31 @@ class ProductController extends Controller
 
     public function show($id)
     {
-        $product = Product::where('id', $id)->get();
-        if($product->count()>0){
+        $product = Product::find($id);
+        if($product) {
             return response()->json([
-                'status'=> 200,
-                'product'=>[
-                    'id'=>$Product->id,
-                    'category'=>$Product->category,
-                    'email'=>$Product->email,
-                    'name'=>$Product->name,
-                    'code'=>$Product->code,
-                    'description'=>$Product->description,
-                    'effective_material'=>$Product->effective_material,
-                    'price'=>$Product->price,
-                    'discount'=>$Product->discount,
-                    'image'=>$Product->image,
-                    ]
-            ],200);
-            }else{
+                'status' => 200,
+                'product' => [
+                    'id' => $product->id,
+                    'category' => $product->category,
+                    'email' => $product->email,
+                    'name' => $product->name,
+                    'code' => $product->code,
+                    'description' => $product->description,
+                    'effective_material' => $product->effective_material,
+                    'price' => $product->price,
+                    'discount' => $product->discount,
+                    'image' => url($product->image),
+                ]
+            ], 200);
+        } else {
             return response()->json([
-                'status'=> 404,
-                'message'=> 'no products found',
-                ],404);
-            }
+                'status' => 404,
+                'message' => 'No product found',
+            ], 404);
+        }
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Product $product)
-    {
-        //
-    }
 
     /**
      * Update the specified resource in storage.
@@ -218,11 +234,14 @@ class ProductController extends Controller
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = public_path('images/product');
             $file->move($path, $filename);
-            $product->image = url('/images/product/' . $filename);
+            $product->image = '/images/product/' . $filename;
+            $product->save();
+
         }
 
         $product->save();
-
+            //for the pharmacy to check the full path
+        $product->image = url('/images/product/' . $filename);
 
         return response()->json([
             'status'=> 200,
@@ -274,28 +293,39 @@ class ProductController extends Controller
 
         $name = $request->input('name');
 
-        $products = Product::with('Images')
-            ->where('name', 'LIKE', "%{$name}%")
-            ->get();
+        // Retrieve product(s) by name
+        $products = Product::where('name', 'LIKE', "%{$name}%")->get();
 
+        // Check if products exist
+        if ($products->isEmpty()) {
             return response()->json([
-                'status'=> 200,
-                'product'=>[
-                    'id'=>$Product->id,
-                    'category'=>$Product->category,
-                    'email'=>$Product->email,
-                    'name'=>$Product->name,
-                    'code'=>$Product->code,
-                    'description'=>$Product->description,
-                    'effective_material'=>$Product->effective_material,
-                    'price'=>$Product->price,
-                    'discount'=>$Product->discount,
-                    'image'=>$Product->image,
-                    ]
-            ],200);
+                'status' => 404,
+                'message' => 'No products found with the given name.'
+            ], 404);
+        }
+
+        // Iterate through each product to construct the response with image link
+        $response = [];
+        foreach ($products as $product) {
+            $response[] = [
+                'id' => $product->id,
+                'category' => $product->category,
+                'email' => $product->email,
+                'name' => $product->name,
+                'code' => $product->code,
+                'description' => $product->description,
+                'effective_material' => $product->effective_material,
+                'price' => $product->price,
+                'discount' => $product->discount,
+                'image' => url($product->image),
+            ];
+        }
+
+        return response()->json([
+            'status' => 200,
+            'products' => $response,
+        ], 200);
     }
-
-
 
     public function searchByCode(Request $request)
     {
@@ -305,25 +335,34 @@ class ProductController extends Controller
 
         $code = $request->input('code');
 
-        $products = Product::with('Images')
-            ->where('code', $code)
-            ->get();
+        // Retrieve product(s) by code
+        $products = Product::where('code', $code)->get();
 
+        // Check if products exist
+        if ($products->isEmpty()) {
             return response()->json([
-                'status'=> 200,
-                'product'=>[
-                    'id'=>$Product->id,
-                    'category'=>$Product->category,
-                    'email'=>$Product->email,
-                    'name'=>$Product->name,
-                    'code'=>$Product->code,
-                    'description'=>$Product->description,
-                    'effective_material'=>$Product->effective_material,
-                    'price'=>$Product->price,
-                    'discount'=>$Product->discount,
-                    'image'=>$Product->image,
-                    ]
-            ],200);
+                'status' => 404,
+                'message' => 'No products found with the given code.'
+            ], 404);
+        }
+
+        // Construct the response with image link
+        $product = $products->first(); // Assuming there's only one product with the given code
+        return response()->json([
+            'status' => 200,
+            'product' => [
+                'id' => $product->id,
+                'category' => $product->category,
+                'email' => $product->email,
+                'name' => $product->name,
+                'code' => $product->code,
+                'description' => $product->description,
+                'effective_material' => $product->effective_material,
+                'price' => $product->price,
+                'discount' => $product->discount,
+                'image' => url($product->image),
+            ],
+        ], 200);
     }
 
 
@@ -339,25 +378,20 @@ class ProductController extends Controller
         $shape = $request->input('shape');
 
         $products = Product::with('Images')
-            ->where('status', '=', 'published')
             ->where('color', $color)
-            ->where('shap', $shape)
+            ->where('shape', $shape)
             ->get();
 
+        if ($products->count() > 0) {
             return response()->json([
-                'status'=> 200,
-                'product'=>[
-                    'id'=>$Product->id,
-                    'category'=>$Product->category,
-                    'email'=>$Product->email,
-                    'name'=>$Product->name,
-                    'code'=>$Product->code,
-                    'description'=>$Product->description,
-                    'effective_material'=>$Product->effective_material,
-                    'price'=>$Product->price,
-                    'discount'=>$Product->discount,
-                    'image'=>$Product->image,
-                    ]
-            ],200);
+                'status' => 200,
+                'products' => $products,
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 404,
+                'message' => 'No products found for the given color and shape.',
+            ], 404);
+        }
     }
 }
