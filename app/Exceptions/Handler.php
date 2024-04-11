@@ -44,6 +44,7 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+
         return parent::render($request, $exception);
     }
 
@@ -72,7 +73,6 @@ class Handler extends ExceptionHandler
     //     ]);
     return response()->json([
         'error' => 'Unauthenticated.',
-        'token' => $request->bearerToken(), // You may need to adjust this based on your middleware logic
     ], Response::HTTP_UNAUTHORIZED);
     }
 }

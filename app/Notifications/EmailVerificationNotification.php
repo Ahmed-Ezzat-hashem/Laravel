@@ -25,6 +25,7 @@ class EmailVerificationNotification extends Notification
     {
         //$this->message = 'Use the below code for reset your password';
         $this->subject = 'Email Verification';
+        $this->message = 'Use the following code to verify your email address: ';
         $this->fromEmail = "test@ahmedshaltout.com";
         $this->mailer = 'smtp';
         $this->otp = new Otp;
@@ -48,11 +49,11 @@ class EmailVerificationNotification extends Notification
         $otp = $this->otp->generate($notifiable->email, 6, 60);
 
         return (new MailMessage)
-            ->view('emails.custom_email', ['user' => $notifiable, 'otp' => $otp->token])
+            ->view('emails.custom_email', ['user' => $notifiable, 'otp' => $otp->token , 'message' => $this->message])
             ->mailer('smtp')
             ->subject($this->subject)
             ->greeting('Hello ' . $notifiable->user_name)
-            ->line('Use the following code to verify your email address: ' . $otp->token)
+            ->line($otp->token)
             ->salutation(' ');
     }
 

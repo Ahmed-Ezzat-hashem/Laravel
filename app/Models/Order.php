@@ -14,6 +14,7 @@ class Order extends Model
         'pharmacy_id',
         'total_amount',
         'status',
+        'customer',
         'tracking_number',
         'country',
         'street_name',
@@ -33,4 +34,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderProduct::class);
     }
+    public function Products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
 }

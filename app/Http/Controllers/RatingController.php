@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Rating;
 use Illuminate\Http\Request;
+use App\Traits\ExceptionHandlingTrait;
+use Illuminate\Support\Facades\Auth;
 
 class RatingController extends Controller
 {

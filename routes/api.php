@@ -7,7 +7,7 @@ use App\Http\Controllers\socialAuthController;
 use App\Http\Controllers\UsersContoller;
 
 use App\Http\Controllers\CartController;
-use App\Http\Controllers\OrderContoller;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderProductController;
 
 use App\Http\Controllers\PharmacyController;
@@ -30,39 +30,50 @@ use Illuminate\Support\Facades\Route;
 */
 
 
+Route::group([],function () {
+    // Public Routes
+    Route::controller(AuthController::class)->group(function () {
+        Route::post('/register-user', 'registerUser');
+        Route::post('/register-verify', 'otpVerfication');
+        Route::post('/resend-otp','resendOtp');
+        Route::post('/resend-otp-pw','resendOtpPW');
 
-// Public Routes
-Route::controller(AuthController::class)->group(function () {
-    Route::post('/register-user', 'registerUser');
-    Route::post('/register-verify', 'otpVerfication');
-    Route::post('/resend-otp','resendOtp');
+        Route::post('/register-pharmacy', 'registerPharmacy');
+        //login
+        Route::post('/login-username', 'LoginByUserName');
+        Route::post('/login-email', 'LoginByEmail');
+        Route::post('/login-phone', 'LoginByPhone');
+        //reset password by sent otp in sms
+        Route::post('password/forgot-password-sms', 'forgotPasswordSms');
+        Route::post('password/reset-sms','passwordResetSms');
+        //reset password by sent otp in mail
+        Route::post('password/forgot-password', 'forgotPassword');
+        Route::post('password/otp', 'passwordResetOtp');
+        Route::post('password/reset', 'passwordReset');
 
-    Route::post('/register-pharmacy', 'registerPharmacy');
-    //login
-    Route::post('/login-username', 'LoginByUserName');
-    Route::post('/login-email', 'LoginByEmail');
-    Route::post('/login-phone', 'LoginByPhone');
-    //reset password by sent otp in sms
-    Route::post('password/forgot-password-sms', 'forgotPasswordSms');
-    Route::post('password/reset-sms','passwordResetSms');
-    //reset password by sent otp in mail
-    Route::post('password/forgot-password', 'forgotPassword');
-    Route::post('password/reset', 'passwordReset');
+    });
+    Route::controller(socialAuthController::class)->group(function () {
+
+        Route::get('/login-google', 'redirectToGoogleProvider');
+        Route::get('/auth/google/callback', 'handleGoogleCallback');
+
+        Route::get('/login-facebook', 'redirectToFacebookProvider');
+        Route::get('/auth/facebook/callback', 'handleFacebookCallback');
+    });
 
 });
-Route::controller(socialAuthController::class)->group(function () {
-
-    Route::get('/login-google', 'redirectToGoogleProvider');
-    Route::get('/auth/google/callback', 'handleGoogleCallback');
-
-    Route::get('/login-facebook', 'redirectToFacebookProvider');
-    Route::get('/auth/facebook/callback', 'handleFacebookCallback');
-});
-
-
+// Route::controller(ProductController::class)->group(function () {
+//     Route::get('/products', 'index');
+//     Route::get('/category/{categoryId}', 'bycat');
+//     Route::get('/products-Pharmacy', 'ProductPharmacy');
+//     Route::get('/product/{id}', 'show');
+//     Route::get('/search-by-name','searchByName');
+//     Route::get('/search-by-code', 'searchByCode');
+//     Route::get('/search-by-color-and-shape','searchByColorAndShape');
+// });
 
 // Protected Routes
-Route::middleware(['checkToken','auth:api'])->group(function () {
+Route::middleware('auth:api')->group(function () {
     // Users
     Route::get('/user', [UsersContoller::class, 'authUser']);
     Route::middleware('checkAdmin')->controller(UsersContoller::class)->group(function () {
@@ -83,6 +94,9 @@ Route::middleware(['checkToken','auth:api'])->group(function () {
 
     Route::controller(CategoryController::class)->group(function () {
         Route::get('/categories', 'index');
+        // categories of pharmacy
+        Route::get('/categories-Pharmacy-user', 'CategoryPharmacyUser');
+        // details of category
         Route::get('/category/{id}', 'show');
     });
 
@@ -94,30 +108,35 @@ Route::middleware(['checkToken','auth:api'])->group(function () {
         Route::delete('/product/{id}', 'destroy');
     });
 
-    Route::middleware('checkToken')->controller(ProductController::class)->group(function () {
+    Route::controller(ProductController::class)->group(function () {
+        //all product
         Route::get('/products', 'index');
-        Route::get('/category/{categoryId}', 'bycat');
-        Route::get('/products-Pharmacy', 'ProductPharmacy');
+        //product of category
+        Route::get('/products-category/{categoryId}', 'bycat');
+        //products of pharmacy for admin get his products
+        Route::get('/products-Pharmacy/{id}', 'ProductPharmacy');
+        //all products of pharmacy for user get product of specific pharmacy
+        Route::get('/products-Pharmacy-user/{id}', 'ProductPharmacyUser');
         Route::get('/product/{id}', 'show');
         Route::get('/search-by-name','searchByName');
         Route::get('/search-by-code', 'searchByCode');
         Route::get('/search-by-color-and-shape','searchByColorAndShape');
     });
 
-    Route::middleware('checkUser')->controller(FavoriteProductController::class)->group(function () {
-        Route::get('/favorite-products', 'index');
-        Route::post('/favorite-products', 'store');
-        Route::delete('/favorite-products/{id}', 'destroy');
+    Route::controller(FavoriteProductController::class)->group(function () {
+        Route::get('/favorites', 'index');
+        Route::post('/favorite', 'store');
+        Route::delete('/favorite/{id}', 'destroy');
         });
 
 
 //-----------------------------------------------------------------------------------------------
 
     // Cart
-    Route::middleware('checkUser')->controller(CartController::class)->group(function () {
+    Route::controller(CartController::class)->group(function () {
         Route::get('/cart' , 'index');
         Route::post('/cart', 'store');
-        Route::put('/cart/{id}', 'update');
+        Route::post('/cart/{id}', 'update');
         Route::delete('/cart/{id}', 'destroy');
         Route::post('/checkout', 'checkout');
     });
@@ -125,10 +144,10 @@ Route::middleware(['checkToken','auth:api'])->group(function () {
 //-----------------------------------------------------------------------------------------------
 
     // Order
-    Route::controller(OrderContoller::class)->group(function () {
+    Route::controller(OrderController::class)->group(function () {
         Route::get('/orders','index');
-        Route::put('/orders/{id}','updateOrderStatus');
-        Route::delete('/orders/{id}','destroy');
+        Route::post('/order/{id}','updateOrderStatus');
+        Route::delete('/order/{id}','destroy');
 
     });
 
@@ -165,9 +184,9 @@ Route::middleware(['checkToken','auth:api'])->group(function () {
 
     // Profile
     Route::controller(ProfileController::class)->group(function () {
-        Route::get('profile/{id}', 'show');
-        Route::post('profile/{id}', 'update');
-        Route::post('profile/{id}/profile-pic', 'profilePic');
+        Route::get('/profile', 'show');
+        Route::post('/edit-profile', 'update');
+        Route::post('/edit-profile-pic', 'profilePic');
     });
 
 //-----------------------------------------------------------------------------------------------

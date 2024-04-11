@@ -48,6 +48,12 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
             ]);
 
+            $profile = Profile::create([
+                'user_id' => $user->id,
+                'first_name' => $request->user_name,
+                'phone_number'=>$user->phone,
+            ]);
+
             // Generate and send OTP for email verification
             $otp = $this->otp->generate($request->email); // Pass email as a string
             $user->notify(new EmailVerificationNotification($otp));
@@ -59,6 +65,101 @@ class AuthController extends Controller
             return response()->json(['error' => 'validations error '], 402);
         }
     }
+
+
+    // public function registerPharmacy(Request $request)
+    // {
+    //     try{
+    //         $request->validate([
+    //             'user_name' => 'required|unique:users',
+    //             'email' => 'required|email|unique:users',
+    //             'phone' => 'required|unique:users',
+    //             'password' => 'required|min:6|confirmed',
+    //             'company_name' =>'required',
+    //             'company_phone' =>'required',
+    //             'delivary_area' =>'required',
+    //             'company_working_hours' =>'required',
+    //             'company_manager_name' =>'required',
+    //             'company_manager_phone' =>'required',
+    //             'commercial_register' =>'nullable|file|mimes:pdf|max:10240',
+    //             'tax_card' =>'nullable|file|mimes:pdf|max:10240',
+    //             'company_license' =>'nullable|file|mimes:pdf|max:10240',
+    //         ]);
+    //         $user = User::create([
+    //             'role'=>'1',
+    //             'user_name' =>$request->user_name,
+    //             'email' =>$request->email,
+    //             'phone' => $request->phone,
+    //             'password' => Hash::make($request->password),
+    //             'company_name' =>$request->company_name,
+    //             'company_phone' =>$request->company_phone,
+    //             'delivary_area' =>$request->delivary_area,
+    //             'company_working_hours' =>$request->company_working_hours,
+    //             'company_manager_name' =>$request->company_manager_name,
+    //             'company_manager_phone' =>$request->company_manager_phone,
+    //         ]);
+
+    //         // Handle file uploads
+    //         if ($request->hasFile('commercial_register') && $request->file('commercial_register')->isValid()) {
+    //             $file = $request->file('commercial_register');
+    //             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+    //             $path = public_path('images/commercial_register');
+    //             $file->move($path, $filename);
+    //             $request->commercial_register = url('/images/commercial_register/' . $filename);
+    //         }
+
+    //         if ($request->hasFile('tax_card') && $request->file('tax_card')->isValid()) {
+    //             $file = $request->file('tax_card');
+    //             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+    //             $path = public_path('images/tax_card');
+    //             $file->move($path, $filename);
+    //             $request->tax_card = url('/images/tax_card/' . $filename);
+    //         }
+
+    //         if ($request->hasFile('company_license') && $request->file('company_license')->isValid()) {
+    //             $file = $request->file('company_license');
+    //             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+    //             $path = public_path('images/company_license');
+    //             $file->move($path, $filename);
+    //             $request->company_license = url('/images/company_license/' . $filename);
+    //         }
+
+    //         // Create Profile entry
+    //         $profile = Profile::create([
+    //             'user_id' => $user->id,
+    //             'first_name' => $request->user_name,
+    //             'phone_number'=>$user->phone,
+    //         ]);
+
+    //         // Create pharmacy entry
+    //         $pharmacy = Pharmacy::create([
+    //             'user_id' => $user->id,
+    //             'name' => $request->company_name,
+    //             'address' => $request->delivary_area,
+    //             'phone'=> $request->phone,
+    //             'image'=>"",
+    //         ]);
+
+    //         //connect the owner with his pharmacy
+    //         $user->update(['pharmacy_id' => $pharmacy->id]);
+
+    //         $token = $user->createToken('token')->accessToken;
+    //         $refreshToken = $user->createToken('authTokenRefresh')->accessToken;
+
+    //         return response()->json([
+    //             'message' => 'Pharmacy registered successfully.',
+    //             'id' => $user->id,
+    //             'user_name' => $user->user_name,
+    //             'phone' => $user->phone,
+    //             'email' => $user->email,
+    //             'role' => $user->role,
+    //             'token' => $token,
+    //         ], 200);
+    //     } catch (ValidationException $e) {
+    //         // Validation failed, return validation errors
+    //         return response()->json(['error' => 'validations error '], 402);
+    //     }
+    // }
 
     public function registerPharmacy(Request $request)
     {
@@ -74,10 +175,11 @@ class AuthController extends Controller
                 'company_working_hours' =>'required',
                 'company_manager_name' =>'required',
                 'company_manager_phone' =>'required',
-                'commercial_register' =>'nullable|file|mimes:pdf|max:10240',
-                'tax_card' =>'nullable|file|mimes:pdf|max:10240',
-                'company_license' =>'nullable|file|mimes:pdf|max:10240',
+                'commercial_register' =>'required|file|mimes:pdf|max:10240',
+                'tax_card' =>'required|file|mimes:pdf|max:10240',
+                'company_license' =>'required|file|mimes:pdf|max:10240',
             ]);
+
             $user = User::create([
                 'role'=>'1',
                 'user_name' =>$request->user_name,
@@ -94,11 +196,17 @@ class AuthController extends Controller
 
             // Handle file uploads
             if ($request->hasFile('commercial_register') && $request->file('commercial_register')->isValid()) {
+                // File validation
                 $file = $request->file('commercial_register');
+                if ($file->getClientOriginalExtension() !== 'pdf' || $file->getSize() > 10240000) {
+                    return response()->json(['error' => 'Invalid commercial register file. Please upload a PDF file within 10MB.'], 400);
+                }
                 $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                 $path = public_path('images/commercial_register');
                 $file->move($path, $filename);
-                $request->commercial_register = url('/images/commercial_register/' . $filename);
+                $user->commercial_register = 'images/commercial_register/' . $filename;
+            } else {
+                return response()->json(['error' => 'Commercial register file not found or invalid.'], 400);
             }
 
             if ($request->hasFile('tax_card') && $request->file('tax_card')->isValid()) {
@@ -106,7 +214,7 @@ class AuthController extends Controller
                 $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                 $path = public_path('images/tax_card');
                 $file->move($path, $filename);
-                $request->tax_card = url('/images/tax_card/' . $filename);
+                $user->tax_card = '/images/tax_card/' . $filename;
             }
 
             if ($request->hasFile('company_license') && $request->file('company_license')->isValid()) {
@@ -114,8 +222,9 @@ class AuthController extends Controller
                 $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                 $path = public_path('images/company_license');
                 $file->move($path, $filename);
-                $request->company_license = url('/images/company_license/' . $filename);
+                $user->company_license = '/images/company_license/' . $filename;
             }
+            $user->save();
 
             // Create Profile entry
             $profile = Profile::create([
@@ -130,26 +239,37 @@ class AuthController extends Controller
                 'name' => $request->company_name,
                 'address' => $request->delivary_area,
                 'phone'=> $request->phone,
+                'image'=>"",
             ]);
 
             //connect the owner with his pharmacy
             $user->update(['pharmacy_id' => $pharmacy->id]);
 
-            $token = $user->createToken('token')->accessToken;
-            $refreshToken = $user->createToken('authTokenRefresh')->accessToken;
+            // Generate and send OTP for email verification
+            $otp = $this->otp->generate($request->email); // Pass email as a string
+            $user->notify(new EmailVerificationNotification($otp));
 
             return response()->json([
-                'message' => 'Pharmacy registered successfully.',
-                'id' => $user->id,
-                'user_name' => $user->user_name,
-                'phone' => $user->phone,
-                'email' => $user->email,
-                'role' => $user->role,
-                'token' => $token,
+                'message' => 'User registered successfully. Please check your email for verification code.',
             ], 200);
-        } catch (ValidationException $e) {
-            // Validation failed, return validation errors
-            return response()->json(['error' => 'validations error '], 402);
+
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
         }
     }
 
@@ -256,44 +376,74 @@ class AuthController extends Controller
             ], 200);
         } catch (ValidationException $e) {
             // Validation failed, return validation errors
-            return response()->json(['error' => 'validations error'], 402);
+            return response()->json([
+                'error' => 'validations error',
+                'message' => $th->getMessage(), // Include the error message in the response
+        ], 402);
         }
     }
 
     // Logout Method
     public function logout(Request $request)
     {
-        $userId = Auth::Id();
+        try{
 
-        $tokens = Token::where('user_id', $userId)->get();
-        // Revoke each token
-        foreach ($tokens as $token) {
-            $token->delete();
+            $userId = Auth::Id();
+
+            $tokens = Token::where('user_id', $userId)->get();
+            // Revoke each token
+            foreach ($tokens as $token) {
+                $token->delete();
+            }
+
+            return response()->json([
+                'message' => 'Logged out successfully.'
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                //'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
         }
-
-        return response()->json([
-            'message' => 'Logged out successfully.'
-        ], 200);
     }
 
     public function forgotPassword(Request $request)
     {
-        $request->validate(['email' => 'required|email|exists:users']);
-        $input = $request->only('email');
-        $user = User::where('email',$input)->first();
-        $user->notify(new ResetPasswordVerificationNotification());
-        $success['success'] = true;
-        return response()->json($success,200);
+        try{
+
+            $request->validate(['email' => 'required|email|exists:users']);
+            $input = $request->only('email');
+            $user = User::where('email',$input)->first();
+            $user->notify(new ResetPasswordVerificationNotification());
+            $success['success'] = true;
+            return response()->json(['message' => 'we send the otp pls check yor email'],200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                //'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
     }
 
     public function forgotPasswordSms(Request $request)
     {
-        $request->validate(['phone' => 'required|exists:users']);
-        $input = $request->only('phone');
-        $user = User::where('phone',$input)->first();
-        $user->notify(new ResetPasswordVerificationNotificationSMS('sms'));
-        $success['success'] = true;
-        return response()->json($success,200);
+        try{
+
+            $request->validate(['phone' => 'required|exists:users']);
+            $input = $request->only('phone');
+            $user = User::where('phone',$input)->first();
+            $user->notify(new ResetPasswordVerificationNotificationSMS('sms'));
+            $success['success'] = true;
+            return response()->json($success,200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                //'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
 
     }
 
@@ -301,42 +451,79 @@ class AuthController extends Controller
     public function __construct(){
         $this->otp = new Otp;
     }
-    public function passwordReset(Request $request)
+    public function passwordResetOtp(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email|exists:users',
-            'password' => 'required|min:6|confirmed',
-            'otp' => 'required|max:6',
-        ]);
+        try{
 
-        $otp2 = $this->otp->validate($request->email, $request->otp);
-            if(! $otp2->status){
-                return response()->json(['error'=>$otp2], 401);
-            }
+            $request->validate([
+                'email' => 'required|email|exists:users',
+                'otp' => 'required|max:6',
+            ]);
+
+            $otp2 = $this->otp->validate($request->email, $request->otp);
+            if (!$otp2->status) {
+                    return response()->json([
+                        'error' => 'OTP is not valid'
+                    ], 401);
+                }
+
+                return response()->json(['message' => 'success'],200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                //'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
+        }
+
+        public function passwordReset(Request $request)
+        {
+            try{
+                $request->validate([
+                'email' => 'required|email|exists:users',
+                'password' => 'required|min:6|confirmed'
+            ]);
+
             $user = User::where('email',$request->email)->first();
             $user->update(['password'=> Hash::make($request->password)]);
             $user->tokens()->delete();
-            $success['success'] = true;
-            return response()->json($success,200);
-        }
+            return response()->json(['message' => 'password reseted successfully'],200);
+            } catch (\Throwable $th) {
+                return response()->json([
+                    'status' => 500,
+                    'error' => 'Internal server error',
+                    // 'message' => $th->getMessage(), // Include the error message in the response
+                ], 500);
+            }
 
+        }
         public function passwordResetSms(Request $request)
     {
-        $request->validate([
-            'phone' => 'required|exists:users',
-            'password' => 'required|min:6|confirmed',
-            'otp' => 'required|max:6',
-        ]);
 
-        $otp2 = $this->otp->validate($request->phone, $request->otp);
-            if(! $otp2->status){
-                return response()->json(['error'=>$otp2], 401);
-            }
-            $user = User::where('phone',$request->email)->first();
-            $user->update(['password'=> Hash::make($request->password)]);
-            $user->tokens()->delete();
-            $success['success'] = true;
-            return response()->json($success,200);
+        try{
+            $request->validate([
+                'phone' => 'required|exists:users',
+                'password' => 'required|min:6|confirmed',
+                'otp' => 'required|max:6',
+            ]);
+
+            $otp2 = $this->otp->validate($request->phone, $request->otp);
+                if(! $otp2->status){
+                    return response()->json(['error'=>$otp2], 401);
+                }
+                $user = User::where('phone',$request->email)->first();
+                $user->update(['password'=> Hash::make($request->password)]);
+                $user->tokens()->delete();
+                $success['success'] = true;
+                return response()->json($success,200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                //'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
         }
 
 
@@ -383,18 +570,28 @@ class AuthController extends Controller
 
     public function resendOtp(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email|exists:users',
-        ]);
+        try{
+            $request->validate([
+                'email' => 'required|email|exists:users',
+            ]);
 
-        $user = User::where('email', $request->email)->first();
+            $user = User::where('email', $request->email)->first();
 
-        // Generate and send OTP for email verification
-        $otp = $this->otp->generate($user->email); // Assuming $this->otp is your OTP generation service
-        $user->notify(new EmailVerificationNotification($otp));
+            // Generate and send OTP for email verification
+            $otp = $this->otp->generate($user->email); // Assuming $this->otp is your OTP generation service
+            $user->notify(new ResetPasswordVerificationNotification($otp));
 
-        return response()->json([
-            'message' => 'OTP has been resent to your email address.',
-        ], 200);
+            return response()->json([
+                'message' => 'OTP has been resent to your email address.',
+            ], 200);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
     }
+
 }

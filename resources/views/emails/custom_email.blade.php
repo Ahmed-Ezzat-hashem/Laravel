@@ -10,10 +10,10 @@
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
-            overflow-x: hidden; /* Add this line to remove downscroller */
+            overflow-x: hidden;
         }
         .container {
-            max-width: 600px;
+            max-width: 400px;
             margin: 0 auto;
             padding: 20px;
             background-color: #fff;
@@ -22,24 +22,27 @@
         }
         .logo {
             display: block;
-            max-width: 150px;
+            max-width: 200px;
             margin: 0 auto 20px;
         }
         h2 {
-            font-size: 24px;
+            font-size: 20px;
             margin-bottom: 15px;
             color: #333;
+            text-align: center;
         }
         p {
             font-size: 16px;
             margin-bottom: 10px;
             color: #666;
+            text-align: center;
         }
         .otp {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #007bff;
             margin-bottom: 20px;
+            text-align: center;
         }
         .footer {
             margin-top: 30px;
@@ -50,7 +53,7 @@
 </head>
 <body>
     <div class="container">
-        <img src="https://i.ibb.co/6bNf67K/logo-search-grid-1x.png"  alt="Logo" class="logo">
+        <img src="https://github.com/Ahmed-Ezzat-hashem/my-images/blob/main/medieye-high-resolution-logo-black.png?raw=true" alt="MediEye Logo" class="logo">
         <h2>Hello {{ $user->user_name }},</h2>
         <p>Use the following code to verify your email address:</p>
         <p class="otp">{{ $otp }}</p>

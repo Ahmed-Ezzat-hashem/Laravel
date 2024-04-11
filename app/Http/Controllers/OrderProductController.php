@@ -9,30 +9,51 @@ class OrderProductController extends Controller
 {
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'order_id' => 'required|exists:orders,id',
-            'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
-        ]);
+        try{
+            $validatedData = $request->validate([
+                'order_id' => 'required|exists:orders,id',
+                'product_id' => 'required|exists:products,id',
+                'quantity' => 'required|integer|min:1',
+            ]);
 
-        $orderProduct = OrderProduct::create($validatedData);
+            $orderProduct = OrderProduct::create($validatedData);
 
-        return response()->json($orderProduct, 201);
+            return response()->json($orderProduct, 201);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                //'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
     }
 
     public function update(Request $request, string $id)
     {
-        $orderProduct = OrderProduct::findOrFail($id);
+        try{
+            $orderProduct = OrderProduct::findOrFail($id);
 
-        $validatedData = $request->validate([
-            'order_id' => 'sometimes|required|exists:orders,id',
-            'product_id' => 'sometimes|required|exists:products,id',
-            'quantity' => 'sometimes|required|integer|min:1',
-        ]);
+            $validatedData = $request->validate([
+                'order_id' => 'sometimes|required|exists:orders,id',
+                'product_id' => 'sometimes|required|exists:products,id',
+                'quantity' => 'sometimes|required|integer|min:1',
+            ]);
 
-        $orderProduct->update($validatedData);
+            $orderProduct->update($validatedData);
 
-        return response()->json($orderProduct, 200);
+            return response()->json($orderProduct, 200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        }
     }
 
     public function destroy(string $id)

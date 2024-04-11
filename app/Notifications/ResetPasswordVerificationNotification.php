@@ -44,6 +44,7 @@ class ResetPasswordVerificationNotification extends Notification
     {
         $otp = $this->otp->generate($notifiable->email,6, 60);
         return (new MailMessage)
+        ->view('emails.password_email', ['user' => $notifiable, 'otp' => $otp->token , 'message' => $this->message])
         ->mailer( 'smtp' )
         ->subject($this->subject)
         ->greeting( 'Hello '.$notifiable->user_name)

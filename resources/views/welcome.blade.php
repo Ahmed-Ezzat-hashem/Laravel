@@ -34,7 +34,7 @@
         }
 
         .route h3 {
-            font-size: 1.5rem;
+            font-size: 3rem;
             color: #007bff;
             margin-bottom: 10px;
         }
@@ -58,32 +58,16 @@
 <body>
     <div class="container">
         <div class="title">
-            Medieye API Documentation
+            Medieye API
         </div>
 
         <!-- Public Routes -->
         <div class="route">
-            <h3>Public Routes</h3>
-            <p>These routes do not require authentication.</p>
-            <ul>
-                <li><strong>POST /register-user:</strong> Register a new user.</li>
-                <li><strong>POST /register-pharmacy:</strong> Register a new pharmacy.</li>
-                <li><strong>POST /login-username:</strong> Login using username and password.</li>
-                <li><strong>POST /login-email:</strong> Login using email and password.</li>
-                <li><strong>POST /password/forgot-password-sms:</strong> Reset password by sending OTP via SMS.</li>
-                <li><strong>POST /password/reset-sms:</strong> Reset password via SMS.</li>
-                <li><strong>POST /password/forgot-password:</strong> Reset password by sending OTP via email.</li>
-                <li><strong>POST /password/reset:</strong> Reset password via email.</li>
-                <li><strong>GET /login-google:</strong> Login with Google.</li>
-                <li><strong>GET /auth/google/callback:</strong> Google authentication callback.</li>
-                <li><strong>GET /login-facebook:</strong> Login with Facebook.</li>
-                <li><strong>GET /auth/facebook/callback:</strong> Facebook authentication callback.</li>
-                <li><strong>GET /project-status:</strong> Check project status.</li>
-            </ul>
+            <h3>Welcom Page</h3>
         </div>
 
         <!-- register Routes -->
-        <div class="route">
+        {{-- <div class="route">
             <h3>Register Routes</h3>
             <ul>
                 <li><strong>POST /register-user:</strong> Register a new user with username, email, and password.</li>
@@ -223,6 +207,6 @@
                 <li><strong>DELETE /prescription/delete/{id}:</strong> Delete prescription by ID.</li>
             </ul>
         </div>
-    </div>
+    </div> --}}
 </body>
 </html>
