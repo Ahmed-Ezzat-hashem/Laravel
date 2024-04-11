@@ -66,101 +66,6 @@ class AuthController extends Controller
         }
     }
 
-
-    // public function registerPharmacy(Request $request)
-    // {
-    //     try{
-    //         $request->validate([
-    //             'user_name' => 'required|unique:users',
-    //             'email' => 'required|email|unique:users',
-    //             'phone' => 'required|unique:users',
-    //             'password' => 'required|min:6|confirmed',
-    //             'company_name' =>'required',
-    //             'company_phone' =>'required',
-    //             'delivary_area' =>'required',
-    //             'company_working_hours' =>'required',
-    //             'company_manager_name' =>'required',
-    //             'company_manager_phone' =>'required',
-    //             'commercial_register' =>'nullable|file|mimes:pdf|max:10240',
-    //             'tax_card' =>'nullable|file|mimes:pdf|max:10240',
-    //             'company_license' =>'nullable|file|mimes:pdf|max:10240',
-    //         ]);
-    //         $user = User::create([
-    //             'role'=>'1',
-    //             'user_name' =>$request->user_name,
-    //             'email' =>$request->email,
-    //             'phone' => $request->phone,
-    //             'password' => Hash::make($request->password),
-    //             'company_name' =>$request->company_name,
-    //             'company_phone' =>$request->company_phone,
-    //             'delivary_area' =>$request->delivary_area,
-    //             'company_working_hours' =>$request->company_working_hours,
-    //             'company_manager_name' =>$request->company_manager_name,
-    //             'company_manager_phone' =>$request->company_manager_phone,
-    //         ]);
-
-    //         // Handle file uploads
-    //         if ($request->hasFile('commercial_register') && $request->file('commercial_register')->isValid()) {
-    //             $file = $request->file('commercial_register');
-    //             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-    //             $path = public_path('images/commercial_register');
-    //             $file->move($path, $filename);
-    //             $request->commercial_register = url('/images/commercial_register/' . $filename);
-    //         }
-
-    //         if ($request->hasFile('tax_card') && $request->file('tax_card')->isValid()) {
-    //             $file = $request->file('tax_card');
-    //             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-    //             $path = public_path('images/tax_card');
-    //             $file->move($path, $filename);
-    //             $request->tax_card = url('/images/tax_card/' . $filename);
-    //         }
-
-    //         if ($request->hasFile('company_license') && $request->file('company_license')->isValid()) {
-    //             $file = $request->file('company_license');
-    //             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-    //             $path = public_path('images/company_license');
-    //             $file->move($path, $filename);
-    //             $request->company_license = url('/images/company_license/' . $filename);
-    //         }
-
-    //         // Create Profile entry
-    //         $profile = Profile::create([
-    //             'user_id' => $user->id,
-    //             'first_name' => $request->user_name,
-    //             'phone_number'=>$user->phone,
-    //         ]);
-
-    //         // Create pharmacy entry
-    //         $pharmacy = Pharmacy::create([
-    //             'user_id' => $user->id,
-    //             'name' => $request->company_name,
-    //             'address' => $request->delivary_area,
-    //             'phone'=> $request->phone,
-    //             'image'=>"",
-    //         ]);
-
-    //         //connect the owner with his pharmacy
-    //         $user->update(['pharmacy_id' => $pharmacy->id]);
-
-    //         $token = $user->createToken('token')->accessToken;
-    //         $refreshToken = $user->createToken('authTokenRefresh')->accessToken;
-
-    //         return response()->json([
-    //             'message' => 'Pharmacy registered successfully.',
-    //             'id' => $user->id,
-    //             'user_name' => $user->user_name,
-    //             'phone' => $user->phone,
-    //             'email' => $user->email,
-    //             'role' => $user->role,
-    //             'token' => $token,
-    //         ], 200);
-    //     } catch (ValidationException $e) {
-    //         // Validation failed, return validation errors
-    //         return response()->json(['error' => 'validations error '], 402);
-    //     }
-    // }
-
     public function registerPharmacy(Request $request)
     {
         try{
@@ -274,12 +179,7 @@ class AuthController extends Controller
     }
 
 
-
-
         //LOGIN
-
-
-
 
     public function LoginByEmail(Request $request)
     {
@@ -305,9 +205,23 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'token' => $token,
             ], 200);
-        } catch (ValidationException $e) {
-            // Validation failed, return validation errors
-            return response()->json(['error' => 'validations error '], 402);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
         }
     }
 
@@ -336,9 +250,23 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'token' => $token,
             ], 200);
-        } catch (ValidationException $e) {
-            // Validation failed, return validation errors
-            return response()->json(['error' => 'validations error '], 402);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
         }
     }
 
@@ -374,12 +302,23 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'token' => $token,
             ], 200);
-        } catch (ValidationException $e) {
-            // Validation failed, return validation errors
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
             return response()->json([
-                'error' => 'validations error',
-                'message' => $th->getMessage(), // Include the error message in the response
-        ], 402);
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
         }
     }
 
@@ -399,11 +338,22 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Logged out successfully.'
             ], 200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => 500,
                 'error' => 'Internal server error',
-                //'message' => $th->getMessage(), // Include the error message in the response
+                'error' => $th->getMessage(), // Include the error message in the response
             ], 500);
         }
     }
@@ -418,11 +368,22 @@ class AuthController extends Controller
             $user->notify(new ResetPasswordVerificationNotification());
             $success['success'] = true;
             return response()->json(['message' => 'we send the otp pls check yor email'],200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => 500,
                 'error' => 'Internal server error',
-                //'message' => $th->getMessage(), // Include the error message in the response
+                'error' => $th->getMessage(), // Include the error message in the response
             ], 500);
         }
     }
@@ -437,11 +398,22 @@ class AuthController extends Controller
             $user->notify(new ResetPasswordVerificationNotificationSMS('sms'));
             $success['success'] = true;
             return response()->json($success,200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => 500,
                 'error' => 'Internal server error',
-                //'message' => $th->getMessage(), // Include the error message in the response
+                'error' => $th->getMessage(), // Include the error message in the response
             ], 500);
         }
 
@@ -468,14 +440,25 @@ class AuthController extends Controller
                 }
 
                 return response()->json(['message' => 'success'],200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => 500,
                 'error' => 'Internal server error',
-                //'message' => $th->getMessage(), // Include the error message in the response
+                'error' => $th->getMessage(), // Include the error message in the response
             ], 500);
         }
-        }
+    }
 
         public function passwordReset(Request $request)
         {
@@ -489,11 +472,22 @@ class AuthController extends Controller
             $user->update(['password'=> Hash::make($request->password)]);
             $user->tokens()->delete();
             return response()->json(['message' => 'password reseted successfully'],200);
+            } catch (\Illuminate\Validation\ValidationException $exception) {
+                $validator = $exception->validator;
+                $messages = [];
+                foreach ($validator->errors()->all() as $error) {
+                    $messages[] = $error;
+                }
+                $errorMessage = implode(' and ', $messages);
+
+                return response()->json([
+                    'error' => $errorMessage,
+                ], 400);
             } catch (\Throwable $th) {
                 return response()->json([
                     'status' => 500,
                     'error' => 'Internal server error',
-                    // 'message' => $th->getMessage(), // Include the error message in the response
+                    'error' => $th->getMessage(), // Include the error message in the response
                 ], 500);
             }
 
@@ -517,11 +511,22 @@ class AuthController extends Controller
                 $user->tokens()->delete();
                 $success['success'] = true;
                 return response()->json($success,200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => 500,
                 'error' => 'Internal server error',
-                //'message' => $th->getMessage(), // Include the error message in the response
+                'error' => $th->getMessage(), // Include the error message in the response
             ], 500);
         }
         }
@@ -563,8 +568,23 @@ class AuthController extends Controller
                 'token' => $token,
             ], 200);
 
-        } catch (ValidationException $e) {
-            return response()->json(['error' => 'validations error '], 402);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
         }
     }
 
@@ -585,11 +605,22 @@ class AuthController extends Controller
                 'message' => 'OTP has been resent to your email address.',
             ], 200);
 
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => 500,
                 'error' => 'Internal server error',
-                'message' => $th->getMessage(), // Include the error message in the response
+                'error' => $th->getMessage(), // Include the error message in the response
             ], 500);
         }
     }
