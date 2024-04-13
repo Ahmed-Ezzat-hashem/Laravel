@@ -12,6 +12,7 @@ class Pharmacy extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'type',
         'address',
         'phone',
         'image',
