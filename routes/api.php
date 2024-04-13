@@ -73,7 +73,7 @@ Route::group([],function () {
 // });
 
 // Protected Routes
-Route::middleware('auth:api')->group(function () {
+Route::middleware(['checkToken'])->group(function () {
     // Users
     Route::get('/user', [UsersContoller::class, 'authUser']);
     Route::middleware('checkAdmin')->controller(UsersContoller::class)->group(function () {
@@ -164,6 +164,9 @@ Route::middleware('auth:api')->group(function () {
     // Pharmacy
     Route::controller(PharmacyController::class)->group(function () {
         Route::get('/pharmacies', 'index');
+        Route::get('/pharmacies-hospital', 'getHospitals');
+        Route::get('/pharmacies-pharmacy', 'getPharmacies');
+        Route::get('/pharmacies/{id}', 'getbytype');
         Route::get('/pharmacy/{id}', 'show');
         Route::post('/pharmacy/edit/{id}', 'update');
         Route::delete('/pharmacy/{id}', 'destroy');

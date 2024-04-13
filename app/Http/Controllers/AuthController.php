@@ -70,6 +70,7 @@ class AuthController extends Controller
     {
         try{
             $request->validate([
+                'type'=>'required|in:pharmacy,hospital',//new
                 'user_name' => 'required|unique:users',
                 'email' => 'required|email|unique:users',
                 'phone' => 'required|unique:users',
@@ -140,6 +141,7 @@ class AuthController extends Controller
 
             // Create pharmacy entry
             $pharmacy = Pharmacy::create([
+                'type'=>$request->type,
                 'user_id' => $user->id,
                 'name' => $request->company_name,
                 'address' => $request->delivary_area,
@@ -326,13 +328,11 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try{
+            $tokens = $request->user()->tokens;
 
-            $userId = Auth::Id();
-
-            $tokens = Token::where('user_id', $userId)->get();
             // Revoke each token
             foreach ($tokens as $token) {
-                $token->delete();
+                $token->revoke();  // This is the correct method call
             }
 
             return response()->json([
@@ -423,6 +423,7 @@ class AuthController extends Controller
     public function __construct(){
         $this->otp = new Otp;
     }
+
     public function passwordResetOtp(Request $request)
     {
         try{
@@ -434,9 +435,7 @@ class AuthController extends Controller
 
             $otp2 = $this->otp->validate($request->email, $request->otp);
             if (!$otp2->status) {
-                    return response()->json([
-                        'error' => 'OTP is not valid'
-                    ], 401);
+                    return response()->json(['error' => $otp2->message  ], 401);
                 }
 
                 return response()->json(['message' => 'success'],200);
@@ -460,8 +459,8 @@ class AuthController extends Controller
         }
     }
 
-        public function passwordReset(Request $request)
-        {
+    public function passwordReset(Request $request)
+    {
             try{
                 $request->validate([
                 'email' => 'required|email|exists:users',
@@ -491,8 +490,8 @@ class AuthController extends Controller
                 ], 500);
             }
 
-        }
-        public function passwordResetSms(Request $request)
+    }
+    public function passwordResetSms(Request $request)
     {
 
         try{
@@ -529,7 +528,7 @@ class AuthController extends Controller
                 'error' => $th->getMessage(), // Include the error message in the response
             ], 500);
         }
-        }
+    }
 
 
 
@@ -545,13 +544,8 @@ class AuthController extends Controller
             $otpValidation = $this->otp->validate($request->email, $request->otp);
 
             if (!$otpValidation->status) {
-                return response()->json(['error' => 'Invalid OTP'], 401);
+                return response()->json(['error' => $otpValidation->message], 401);
             }
-
-            // Check if the provided OTP corresponds to a different email
-            // if ($otpValidation->email !== $request->email) {
-            //     return response()->json(['error' => 'OTP does not match the provided email'], 401);
-            // }
 
             // OTP is valid and belongs to the provided email
             // Update the email_verified_at column
@@ -599,7 +593,7 @@ class AuthController extends Controller
 
             // Generate and send OTP for email verification
             $otp = $this->otp->generate($user->email); // Assuming $this->otp is your OTP generation service
-            $user->notify(new ResetPasswordVerificationNotification($otp));
+            $user->notify(new EmailVerificationNotification($otp));
 
             return response()->json([
                 'message' => 'OTP has been resent to your email address.',
@@ -625,4 +619,40 @@ class AuthController extends Controller
         }
     }
 
+    public function resendOtpPW(Request $request)
+    {
+        try{
+            $request->validate([
+                'email' => 'required|email|exists:users',
+            ]);
+
+            $user = User::where('email', $request->email)->first();
+
+            // Generate and send OTP for email verification
+            $otp = $this->otp->generate($user->email); // Assuming $this->otp is your OTP generation service
+            $user->notify(new ResetPasswordVerificationNotification($otp));
+
+            return response()->json([
+                'message' => 'OTP has been resent to your email address.',
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
+    }
 }

@@ -11,7 +11,10 @@ class CheckToken
 {
     public function handle(Request $request, Closure $next)
     {
-        // Check if the request contains a valid token
+        // Check for a bearer token in the request
+        $token = $request->bearerToken();
+
+        // Verify the token using the 'api' guard
         if (!$request->bearerToken()) {
             return response()->json([
                 'error' => 'Token not provided',
@@ -20,27 +23,14 @@ class CheckToken
 
         // Verify the token
         if (!Auth::guard('api')->check()) {
-            return response()->json(['error' => 'Invalid token'], 401);
+            return response()->json(['error' => 'Invalid token. pls login again'], 401);
         }
 
+        // Set the authenticated user
+        Auth::setUser(Auth::guard('api')->user());
+
+        // Proceed to the next middleware or controller
         return $next($request);
     }
 
-    private function isPublicRoute($request)
-    {
-        // Define your public routes here
-        $publicRoutes = [
-            'login-username',
-            'login-email',
-            'login-phone',
-            'password/forgot-password-sms',
-            'password/reset-sms',
-            'password/forgot-password',
-            'password/otp',
-            // Add more public routes as needed
-        ];
-
-        // Check if the current route is a public route
-        return in_array($request->route()->getName(), $publicRoutes);
-    }
 }

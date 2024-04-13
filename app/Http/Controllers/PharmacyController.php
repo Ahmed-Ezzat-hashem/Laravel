@@ -197,4 +197,148 @@ class PharmacyController extends Controller
             return $this->handleException($th);
         }
     }
+
+    public function getPharmacies(Request $request)
+    {
+        try {
+            $pharmacies = Pharmacy::where('type','pharmacy')->with('ratings')->get();
+
+            // Calculate average rating for each pharmacy
+            $pharmaciesWithAverageRating = $pharmacies->map(function ($pharmacy) {
+                $ratings = $pharmacy->ratings->pluck('rating');
+
+                // Calculate average rating or set it to 0 if no ratings exist
+                $averageRating = $ratings->isEmpty() ? 0 : $ratings->avg();
+
+                // Check if the image field is empty, if so, set it to null
+                $image = $pharmacy->image ? url($pharmacy->image) : null;
+
+                return [
+                    'id' => $pharmacy->id,
+                    'name' => $pharmacy->name,
+                    'address' => $pharmacy->address,
+                    'image' => $image, // Use the $image variable here
+                    'average_rating' => $averageRating,
+                ];
+            });
+
+            return response()->json([
+                'status' => 200,
+                'pharmacies' => $pharmaciesWithAverageRating,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                // 'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
+    }
+
+    public function getHospitals(Request $request)
+    {
+        try {
+            $pharmacies = Pharmacy::where('type','hospital')->with('ratings')->get();
+
+            // Calculate average rating for each pharmacy
+            $pharmaciesWithAverageRating = $pharmacies->map(function ($pharmacy) {
+                $ratings = $pharmacy->ratings->pluck('rating');
+
+                // Calculate average rating or set it to 0 if no ratings exist
+                $averageRating = $ratings->isEmpty() ? 0 : $ratings->avg();
+
+                // Check if the image field is empty, if so, set it to null
+                $image = $pharmacy->image ? url($pharmacy->image) : null;
+
+                return [
+                    'id' => $pharmacy->id,
+                    'name' => $pharmacy->name,
+                    'address' => $pharmacy->address,
+                    'image' => $image, // Use the $image variable here
+                    'average_rating' => $averageRating,
+                ];
+            });
+
+            return response()->json([
+                'status' => 200,
+                'pharmacies' => $pharmaciesWithAverageRating,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                // 'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
+    }
+
+    public function getbytype(Request $request ,$id)
+    {
+        try {
+            $pharmacies = Pharmacy::where('type',$id)->with('ratings')->get();
+
+            // Calculate average rating for each pharmacy
+            $pharmaciesWithAverageRating = $pharmacies->map(function ($pharmacy) {
+                $ratings = $pharmacy->ratings->pluck('rating');
+
+                // Calculate average rating or set it to 0 if no ratings exist
+                $averageRating = $ratings->isEmpty() ? 0 : $ratings->avg();
+
+                // Check if the image field is empty, if so, set it to null
+                $image = $pharmacy->image ? url($pharmacy->image) : null;
+
+                return [
+                    'id' => $pharmacy->id,
+                    'name' => $pharmacy->name,
+                    'address' => $pharmacy->address,
+                    'image' => $image, // Use the $image variable here
+                    'average_rating' => $averageRating,
+                ];
+            });
+
+            return response()->json([
+                'status' => 200,
+                'pharmacies' => $pharmaciesWithAverageRating,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                // 'message' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
+    }
 }
