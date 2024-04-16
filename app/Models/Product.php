@@ -41,6 +41,11 @@ class Product extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function pharmacy()
+    {
+        return $this->belongsTo(Pharmacy::class);
+    }
+
     //order table relation
     // public function Order()
     // {

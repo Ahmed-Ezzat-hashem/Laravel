@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use Vonage\Client;
+use Vonage\SMS\Message\Text;
+use Vonage\Client\Credentials\Basic;
+
 use Laravel\Passport\Token;
 use App\Models\User;
 use Carbon\Carbon;
@@ -15,11 +19,11 @@ use App\Models\Profile;
 use App\Models\Pharmacy;
 use Illuminate\Validation\ValidationException;
 
-//use App\Http\Requests\Auth\ForgetPasswordRequest;
+use Otp;
+
 use App\Notifications\ResetPasswordVerificationNotification;
 use App\Notifications\EmailVerificationNotification;
 use App\Notifications\ResetPasswordVerificationNotificationSMS;
-use Otp;
 class AuthController extends Controller
 {
     protected function login(Request $request): ?string
@@ -187,7 +191,7 @@ class AuthController extends Controller
     {
         try{
             $request->validate([
-                'email' => 'required',
+                'email' => 'required|exists:users',
                 'password' => 'required|min:6'
             ]);
             $credentials = request(['email', 'password']);
@@ -200,6 +204,7 @@ class AuthController extends Controller
             $token = $user->createToken('token')->accessToken;
 
             return response()->json([
+                'status' => true,
                 'id' => $user->id,
                 'user_name' => $user->user_name,
                 'phone' => $user->phone,
@@ -245,6 +250,7 @@ class AuthController extends Controller
             $token = $user->createToken('token')->accessToken;
 
             return response()->json([
+                'status' => true,
                 'id' => $user->id,
                 'user_name' => $user->user_name,
                 'phone' => $user->phone,
@@ -276,7 +282,7 @@ class AuthController extends Controller
     public function LoginByPhone(Request $request)
     {
         try{
-            $request->validate([
+            $x = $request->validate([
                 'phone' => 'required',
                 'password' => 'required|min:6'
             ]);
@@ -297,6 +303,7 @@ class AuthController extends Controller
 
             // Return the user details and access token in the response
             return response()->json([
+                'status' => true,
                 'id' => $user->id,
                 'user_name' => $user->user_name,
                 'phone' => $user->phone,
@@ -388,36 +395,6 @@ class AuthController extends Controller
         }
     }
 
-    public function forgotPasswordSms(Request $request)
-    {
-        try{
-
-            $request->validate(['phone' => 'required|exists:users']);
-            $input = $request->only('phone');
-            $user = User::where('phone',$input)->first();
-            $user->notify(new ResetPasswordVerificationNotificationSMS('sms'));
-            $success['success'] = true;
-            return response()->json($success,200);
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $validator = $exception->validator;
-            $messages = [];
-            foreach ($validator->errors()->all() as $error) {
-                $messages[] = $error;
-            }
-            $errorMessage = implode(' and ', $messages);
-
-            return response()->json([
-                'error' => $errorMessage,
-            ], 400);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'status' => 500,
-                'error' => 'Internal server error',
-                'error' => $th->getMessage(), // Include the error message in the response
-            ], 500);
-        }
-
-    }
 
     private $otp;
     public function __construct(){
@@ -435,10 +412,10 @@ class AuthController extends Controller
 
             $otp2 = $this->otp->validate($request->email, $request->otp);
             if (!$otp2->status) {
-                    return response()->json(['error' => $otp2->message  ], 401);
-                }
+                return response()->json(['error' => $otp2->message  ], 401);
+            }
 
-                return response()->json(['message' => 'success'],200);
+            return response()->json(['message' => 'success'],200);
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $validator = $exception->validator;
             $messages = [];
@@ -461,8 +438,8 @@ class AuthController extends Controller
 
     public function passwordReset(Request $request)
     {
-            try{
-                $request->validate([
+        try{
+            $request->validate([
                 'email' => 'required|email|exists:users',
                 'password' => 'required|min:6|confirmed'
             ]);
@@ -471,45 +448,6 @@ class AuthController extends Controller
             $user->update(['password'=> Hash::make($request->password)]);
             $user->tokens()->delete();
             return response()->json(['message' => 'password reseted successfully'],200);
-            } catch (\Illuminate\Validation\ValidationException $exception) {
-                $validator = $exception->validator;
-                $messages = [];
-                foreach ($validator->errors()->all() as $error) {
-                    $messages[] = $error;
-                }
-                $errorMessage = implode(' and ', $messages);
-
-                return response()->json([
-                    'error' => $errorMessage,
-                ], 400);
-            } catch (\Throwable $th) {
-                return response()->json([
-                    'status' => 500,
-                    'error' => 'Internal server error',
-                    'error' => $th->getMessage(), // Include the error message in the response
-                ], 500);
-            }
-
-    }
-    public function passwordResetSms(Request $request)
-    {
-
-        try{
-            $request->validate([
-                'phone' => 'required|exists:users',
-                'password' => 'required|min:6|confirmed',
-                'otp' => 'required|max:6',
-            ]);
-
-            $otp2 = $this->otp->validate($request->phone, $request->otp);
-                if(! $otp2->status){
-                    return response()->json(['error'=>$otp2], 401);
-                }
-                $user = User::where('phone',$request->email)->first();
-                $user->update(['password'=> Hash::make($request->password)]);
-                $user->tokens()->delete();
-                $success['success'] = true;
-                return response()->json($success,200);
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $validator = $exception->validator;
             $messages = [];
@@ -526,6 +464,126 @@ class AuthController extends Controller
                 'status' => 500,
                 'error' => 'Internal server error',
                 'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
+
+    }
+
+    public function forgotPasswordSms(Request $request)
+    {
+        try{
+
+            $request->validate(['phone' => 'required|exists:users']);
+            $input = $request->only('phone');
+            $user = User::where('phone',$input)->first();
+            $otp = $this->otp->generate($user->phone);
+            // return response()->json(['message' => $otp]);
+            // Define your API key and secret
+            $apiKey = env('VONAGE_API_KEY');
+            $apiSecret = env('VONAGE_API_SECRET');
+
+            // Create credentials using the API key and secret
+            $credentials = new Basic($apiKey, $apiSecret);
+
+            // Create a Vonage client instance
+            $client = new Client($credentials);
+
+            // Define the sender, recipient, and message text
+            $from = 'MediEye';
+            $to = '+2' . $user->phone;
+            $messageText = "Your OTP is: " . $otp->token;
+
+
+            $responseData = $response = $client->sms()->send(
+                new \Vonage\SMS\Message\SMS($to,$from,$messageText)
+            );
+
+            // Check the response for success
+            $responseData = $response->current();
+            if ($responseData->getStatus() == 0) {
+                // SMS sent successfully
+                return response()->json(['message' => 'SMS sent successfully!']);
+            } else {
+                // Handle different status codes for clarity
+                $statusCode = $responseData->getStatus();
+                $errorMessage = $responseData->getErrorText();
+                return response()->json(['message' => "Failed to send SMS. Status: $statusCode, Error: $errorMessage"], 500);
+            }
+
+
+
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
+
+    }
+
+    public function passwordResetSms(Request $request)
+    {
+        try {
+            // Validate the input
+            $request->validate(['phone' => 'required|phone|exists:users']);
+            $input = $request->only('phone');
+
+            // Find the user based on the phone
+            $user = User::where('phone', $input['phone'])->first();
+
+            // Generate a random OTP (use a better method in production)
+            $otp = random_int(100000, 999999);
+
+            // Store the OTP in the user
+            $user->otp = $otp;
+            $user->save();
+
+            // Initialize the Vonage client
+            $apiKey = env('VONAGE_API_KEY');
+            $apiSecret = env('VONAGE_API_SECRET');
+            $vonage = new \Vonage\Client(new \Vonage\Client\Credentials\Basic($apiKey, $apiSecret));
+
+            // Compose the SMS message
+            $sms = new \Vonage\SMS\Message\SMS(
+                '+2' + $user->phone, // User's phone number with country code prefix
+                env('VONAGE_FROM_NUMBER'), // Sender ID or Vonage number
+                "Your OTP is: $otp" // SMS message body
+            );
+
+            // Send the SMS using Vonage
+            $response = $vonage->sms()->send($sms);
+
+            // Check the response for success
+            if (!$response->current()->isSuccess()) {
+                // Handle SMS sending failure
+                throw new \Exception("Failed to send SMS: " . $response->current()->getErrorText());
+            }
+
+            // Return success response
+            return response()->json(['message' => 'We sent the OTP, please check your SMS.'], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = $validator->errors()->all();
+            $errorMessage = implode(' and ', $messages);
+            return response()->json(['error' => $errorMessage], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'message' => $e->getMessage(), // Include the error message in the response
             ], 500);
         }
     }

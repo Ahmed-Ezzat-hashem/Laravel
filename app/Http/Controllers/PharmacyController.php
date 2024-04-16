@@ -297,6 +297,16 @@ class PharmacyController extends Controller
     public function getbytype(Request $request ,$id)
     {
         try {
+            $typeExists = Pharmacy::where('type', $id)->exists();
+
+            if (!$typeExists) {
+                // If the type does not exist, return an error response
+                return response()->json([
+                    'status' => 400,
+                    'error' => 'Invalid type. No matching pharmacy found.',
+                ], 400);
+            }
+
             $pharmacies = Pharmacy::where('type',$id)->with('ratings')->get();
 
             // Calculate average rating for each pharmacy

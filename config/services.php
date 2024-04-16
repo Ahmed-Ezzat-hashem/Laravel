@@ -13,6 +13,17 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    // 'twilio' => [
+    //     'sid' => env('TWILIO_SID'),
+    //     'token' => env('TWILIO_TOKEN'),
+    //     'from' => env('TWILIO_FROM_NUMBER'),
+    // ],
+
+    'vonage' => [
+        'key' => env('VONAGE_API_KEY'),
+        'secret' => env('VONAGE_API_SECRET'),
+        'from' => env('VONAGE_FROM_NUMBER'),
+    ],
 
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),

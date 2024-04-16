@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SmsController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\socialAuthController;
@@ -32,6 +33,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::group([],function () {
     // Public Routes
+    Route::post('sms/forgetpw', [SmsController::class,'sendSMS']);
+    // Route::post('password/reset-sms', [SmsController::class,'passwordResetSms']);
+
     Route::controller(AuthController::class)->group(function () {
         Route::post('/register-user', 'registerUser');
         Route::post('/register-verify', 'otpVerfication');

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
-
+use App\Models\FavoriteProduct;
 
 class ProductController extends Controller
 {
@@ -22,13 +22,25 @@ class ProductController extends Controller
      */
     public function index()
     {
-        try{
-
+        try {
+            // Retrieve all products
             $products = Product::all();
-            $imageBaseUrl = env('APP_URL') ; // Retrieve the base URL from .env
 
+            // Get the base URL from the environment
+            $imageBaseUrl = env('APP_URL');
+
+            // Get the ID of the currently authenticated user
+            $userId = Auth::id();
+
+            // Map the products to an array with additional information
             if ($products->count() > 0) {
-                $productsArray = $products->map(function ($product) use ($imageBaseUrl) {
+                $productsArray = $products->map(function ($product) use ($imageBaseUrl, $userId) {
+                    // Check if the current product is in the user's favorites
+                    $isFavorite = FavoriteProduct::where('user_id', $userId)
+                        ->where('product_id', $product->id)
+                        ->exists();
+
+                    // Construct the product array
                     $imageUrl = $imageBaseUrl . $product->image;
                     return [
                         'id' => $product->id,
@@ -40,20 +52,23 @@ class ProductController extends Controller
                         'price' => $product->price,
                         'discount' => $product->discount,
                         'image' => $imageUrl,
+                        'is_favorite' => $isFavorite, // Add the is_favorite field
                     ];
                 });
 
+                // Return the products array in the response
                 return response()->json([
-                    //'status' => 200,
                     'products' => $productsArray,
                 ], 200);
             } else {
+                // Return a 404 response if no products are found
                 return response()->json([
                     'status' => 404,
                     'message' => 'No products found',
                 ], 404);
             }
         } catch (\Illuminate\Validation\ValidationException $exception) {
+            // Handle validation errors
             $validator = $exception->validator;
             $messages = [];
             foreach ($validator->errors()->all() as $error) {
@@ -61,6 +76,7 @@ class ProductController extends Controller
             }
             $errorMessage = implode(' and ', $messages);
 
+            // Return a response with the validation error
             return response()->json([
                 'error' => $errorMessage,
             ], 400);
