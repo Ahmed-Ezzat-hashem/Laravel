@@ -60,6 +60,55 @@ class OrderController extends Controller
         }
     }
 
+
+    public function indexuser(Request $request)
+    {
+        try{
+
+            // Retrieve the authenticated user
+            $user = Auth::user();
+
+            // Retrieve all orders associated with the user by their ID
+            $new_order = Order::where('user_id', $user->id)
+                        ->where('status', 'new_order')
+                        ->with('orderproducts') // Make sure the relationship is in lowercase
+                        ->get();
+
+            $complete = Order::where('user_id', $user->id)
+                        ->where('status', 'complete')
+                        ->with('orderproducts') // Make sure the relationship is in lowercase
+                        ->get();
+
+            $rejected = Order::where('user_id', $user->id)
+                        ->where('status', 'rejected')
+                        ->with('orderproducts') // Make sure the relationship is in lowercase
+                        ->get();
+            return response()->json([
+                'status' => 200,
+                'pending' => $new_order,
+                'delivered' => $complete,
+                'cancelled' => $rejected,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(), // Include the error message in the response
+            ], 500);
+        }
+    }
+
     /**
      * Update the specified resource in storage.
      */

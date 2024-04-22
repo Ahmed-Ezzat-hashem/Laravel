@@ -26,14 +26,11 @@ class CategoryController extends Controller
             }
 
             if ($categories->count() > 0) {
-                $imageBaseUrl = env('APP_URL'); // Retrieve the base URL from .env
-
-                $categoriesArray = $categories->map(function ($category) use ($imageBaseUrl) {
-                    $imageUrl = $imageBaseUrl . $category->image;
+                $categoriesArray = $categories->map(function ($category) {
                     return [
                         'id' => $category->id,
                         'title' => $category->title,
-                        'image' => $imageUrl,
+                        'image' => url($category->image),
                     ];
                 });
 
@@ -87,11 +84,10 @@ class CategoryController extends Controller
             if ($categories->count() > 0) {
                 $categoriesArray = $categories->map(function ($category) {
                     // Construct image URL using the category's image field
-                    $imageUrl = env('APP_URL') . $category->image;
                     return [
                         'id' => $category->id,
                         'title' => $category->title,
-                        'image' => $imageUrl,
+                        'image' => url($category->image),
                     ];
                 });
 
@@ -175,7 +171,7 @@ class CategoryController extends Controller
         try {
             $request->validate([
                 'title' => 'required',
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Adjust file types and size as needed
+                'image' => 'nullable', // Adjust file types and size as needed
             ]);
 
             $pharmacy_id = auth()->user()->pharmacy_id;
@@ -209,10 +205,6 @@ class CategoryController extends Controller
 
             return response()->json([
                 'error' => $errorMessage,
-                'headers' => $request->header(),
-                'params' => $request->all(),
-                'name' => $request->input('name'),
-                'body' => $request->getContent(),
             ], 400);
         } catch (\Throwable $th) {
             return response()->json([
@@ -226,13 +218,17 @@ class CategoryController extends Controller
     public function update(Request $request, $id)
     {
         try{
+            $user = Auth::user();
 
             $request->validate([
                 'title' => 'required',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Adjust file types and size as needed
+                'image' => 'nullable',
             ]);
 
             $category = Category::findOrFail($id);
+            if($category->pharmacy_id != $user->pharmacy_id) {
+                return response()->json(['status'=> 400,'error' => 'not your pharmacy product'],400);
+            }
             $category->title = $request->title;
 
             if ($request->hasFile('image') && $request->file('image')->isValid()) {
@@ -282,7 +278,7 @@ class CategoryController extends Controller
         try{
 
             $category = Category::findOrFail($id);
-            $imagePath = public_path('images/category/  ' . basename($category->image));
+            $imagePath = public_path('images/category/' . basename($category->image));
 
             if (File::exists($imagePath)) {
                 File::delete($imagePath);

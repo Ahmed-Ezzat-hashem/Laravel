@@ -42,7 +42,11 @@ class CartController extends Controller
                             'name' => $cartItem->product->name,
                             'effective_material' => $cartItem->product->effective_material,
                             'code' => $cartItem->product->code,
-                            'image' => $cartItem->product->image,
+                            'image' => url($cartItem->product->image),
+                            'type'=> $product->type,
+                            'product_origin'=> $product->product_origin,
+                            'about'=> $product->about,
+                            'title'=> $product->title,
                             // Add other product attributes as needed
                         ]
                     ];
@@ -50,13 +54,15 @@ class CartController extends Controller
 
                 return response()->json([
                     'status' => 200,
+                    'dilvary' =>20,
                     'cartItems' => $transformedCartItems,
                 ], 200);
             } else {
                 return response()->json([
-                    'status' => 404,
-                    'error' => 'No cart items found for the authenticated user.',
-                ], 404);
+                    'status' => 200,
+                    'dilvary' =>0,
+                    'cartItems' => $cartItems,
+                ], 200);
             }
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $validator = $exception->validator;
@@ -163,6 +169,81 @@ class CartController extends Controller
         }
     }
 
+    public function addOne(Request $request, string $id)
+    {
+        try {
+            // Find the cart item by ID
+            $cartItem = Cart::findOrFail($id);
+
+            // Update the quantity
+            $cartItem->quantity += 1;
+            $cartItem->save();
+
+            return response()->json([
+                'status' => 200,
+                'cart_item' => $cartItem,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'message' => $th->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function decOne(Request $request, string $id)
+    {
+        try {
+            // Find the cart item by ID
+            $cartItem = Cart::findOrFail($id);
+
+            // Decrease the quantity by 1, but ensure it doesn't drop below 1
+            if ($cartItem->quantity > 1) {
+                $cartItem->quantity -= 1;
+                $cartItem->save();
+
+                return response()->json([
+                    'status' => 200,
+                    'cart_item' => $cartItem,
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => 400,
+                    'error' => 'Quantity cannot be less than 1',
+                ], 400);
+            }
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $validator = $exception->validator;
+            $messages = [];
+            foreach ($validator->errors()->all() as $error) {
+                $messages[] = $error;
+            }
+            $errorMessage = implode(' and ', $messages);
+
+            return response()->json([
+                'error' => $errorMessage,
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'error' => $th->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * Remove the specified resource from storage.
      */
@@ -197,6 +278,10 @@ class CartController extends Controller
                             'effective_material' => $cartItem->product->effective_material,
                             'code' => $cartItem->product->code,
                             'image' => $cartItem->product->image,
+                            'type'=> $product->type,
+                            'product_origin'=> $product->product_origin,
+                            'about'=> $product->about,
+                            'title'=> $product->title,
                             // Add other product attributes as needed
                         ]
                     ];
@@ -243,6 +328,7 @@ class CartController extends Controller
     public function checkout(Request $request)
     {
         try{
+
             $user = Auth::user();
             $cartItems = Cart::where('user_id',$user->id)->with('product')->get();
 
@@ -265,7 +351,7 @@ class CartController extends Controller
                     'total_amount' => $totalAmount,
                     'status' => 'new_order',
                     'customer' =>$user->user_name,
-
+                    'dilvary'=>20,
                     'tracking_number' => $request->input('tracking_number'),
                     'country' => $request->input('country'),
                     'street_name' => $request->input('street_name'),
@@ -280,6 +366,7 @@ class CartController extends Controller
                 foreach ($items as $cartItem) {
                     OrderProduct::create([
                         'order_id' => $order->id,
+                        'name' => $cartItem->product->name,
                         'price' => $cartItem->product->price,
                         'product_id' => $cartItem->product_id,
                         'quantity' => $cartItem->quantity,
@@ -312,6 +399,88 @@ class CartController extends Controller
         }
     }
 
+    public function checkout1(Request $request)
+    {
+        try {
+            // Get the authenticated user
+            $user = Auth::user();
+
+            // Validate the request data
+            $request->validate([
+                'products' => 'required|array',
+                'products.*.product_id' => 'required|exists:products,id',
+                'products.*.quantity' => 'required|integer|min:1',
+                'total_price' => 'required|numeric',
+                'delivery_price' => 'required|numeric',
+                'country' => 'required|string',
+                'street_name' => 'required|string',
+                'city' => 'required|string',
+                'state_province' => 'required|string',
+                'zip_code' => 'required|string',
+                'phone_number' => 'required|string',
+            ]);
+
+            // Group products by pharmacy ID
+            $groupedProducts = collect($request->input('products'))
+                ->groupBy(function ($item) {
+                    // Retrieve the product to find the pharmacy ID
+                    $product = Product::findOrFail($item['product_id']);
+                    return $product->pharmacy_id;
+                });
+
+            // Process each group of products
+            foreach ($groupedProducts as $pharmacyId => $products) {
+                // Calculate the total amount for the group of products
+                $totalAmount = $this->calculateTotalAmount($products);
+
+                // Create a new order for this pharmacy
+                $order = Order::create([
+                    'user_id' => $user->id,
+                    'pharmacy_id' => $pharmacyId,
+                    'total_amount' => $totalAmount,
+                    'delivery_price' => $request->input('delivery_price'),
+                    'status' => 'new_order',
+                    'customer' => $user->user_name,
+                    'country' => $request->input('country'),
+                    'street_name' => $request->input('street_name'),
+                    'city' => $request->input('city'),
+                    'state_province' => $request->input('state_province'),
+                    'zip_code' => $request->input('zip_code'),
+                    'phone_number' => $request->input('phone_number'),
+                    'tracking_number' => $request->input('tracking_number', null), // Optional
+                    'coupon_code' => $request->input('coupon_code', null), // Optional
+                ]);
+
+                // Create order products for each product in the group
+                foreach ($products as $productData) {
+                    $product = Product::findOrFail($productData['product_id']);
+
+                    OrderProduct::create([
+                        'order_id' => $order->id,
+                        'product_id' => $productData['product_id'],
+                        'price' => $product->price,
+                        'quantity' => $productData['quantity'],
+                    ]);
+                }
+            }
+
+            // Return success response
+            return response()->json(['message' => 'Order(s) created successfully'], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            // Handle validation exceptions
+            return response()->json([
+                'error' => implode(' and ', $exception->errors()->all()),
+            ], 400);
+        } catch (\Throwable $th) {
+            // Handle unexpected exceptions
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal server error',
+                'message' => $th->getMessage(),
+            ], 500);
+        }
+    }
     /**
      * Calculate the total amount for the order.
      */

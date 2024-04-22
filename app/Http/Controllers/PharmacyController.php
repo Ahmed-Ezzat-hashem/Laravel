@@ -298,7 +298,6 @@ class PharmacyController extends Controller
     {
         try {
             $typeExists = Pharmacy::where('type', $id)->exists();
-
             if (!$typeExists) {
                 // If the type does not exist, return an error response
                 return response()->json([
@@ -306,19 +305,14 @@ class PharmacyController extends Controller
                     'error' => 'Invalid type. No matching pharmacy found.',
                 ], 400);
             }
-
             $pharmacies = Pharmacy::where('type',$id)->with('ratings')->get();
-
             // Calculate average rating for each pharmacy
             $pharmaciesWithAverageRating = $pharmacies->map(function ($pharmacy) {
                 $ratings = $pharmacy->ratings->pluck('rating');
-
                 // Calculate average rating or set it to 0 if no ratings exist
                 $averageRating = $ratings->isEmpty() ? 0 : $ratings->avg();
-
                 // Check if the image field is empty, if so, set it to null
                 $image = $pharmacy->image ? url($pharmacy->image) : null;
-
                 return [
                     'id' => $pharmacy->id,
                     'name' => $pharmacy->name,
@@ -327,7 +321,6 @@ class PharmacyController extends Controller
                     'average_rating' => $averageRating,
                 ];
             });
-
             return response()->json([
                 'status' => 200,
                 'pharmacies' => $pharmaciesWithAverageRating,
@@ -339,7 +332,6 @@ class PharmacyController extends Controller
                 $messages[] = $error;
             }
             $errorMessage = implode(' and ', $messages);
-
             return response()->json([
                 'error' => $errorMessage,
             ], 400);

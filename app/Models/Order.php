@@ -13,6 +13,7 @@ class Order extends Model
         'user_id',
         'pharmacy_id',
         'total_amount',
+        'dilvary',
         'status',
         'customer',
         'tracking_number',
@@ -38,5 +39,6 @@ class Order extends Model
     {
         return $this->hasMany(Product::class);
     }
+
 
 }

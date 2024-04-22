@@ -24,26 +24,23 @@ class ProductController extends Controller
     {
         try {
             // Retrieve all products
-            $products = Product::all();
-
-            // Get the base URL from the environment
-            $imageBaseUrl = env('APP_URL');
+            $products = Product::with('pharmacy')->get();
 
             // Get the ID of the currently authenticated user
             $userId = Auth::id();
 
             // Map the products to an array with additional information
             if ($products->count() > 0) {
-                $productsArray = $products->map(function ($product) use ($imageBaseUrl, $userId) {
+                $productsArray = $products->map(function ($product) use ($userId) {
                     // Check if the current product is in the user's favorites
                     $isFavorite = FavoriteProduct::where('user_id', $userId)
                         ->where('product_id', $product->id)
                         ->exists();
 
                     // Construct the product array
-                    $imageUrl = $imageBaseUrl . $product->image;
                     return [
                         'id' => $product->id,
+                        'pharmacy_name'=> $product->pharmacy->name,
                         'category_title' => $product->category,
                         'name' => $product->name,
                         'code' => $product->code,
@@ -51,8 +48,12 @@ class ProductController extends Controller
                         'effective_material' => $product->effective_material,
                         'price' => $product->price,
                         'discount' => $product->discount,
-                        'image' => $imageUrl,
+                        'image' => url($product->image),
                         'is_favorite' => $isFavorite, // Add the is_favorite field
+                        'type'=> $product->type,
+                        'product_origin'=> $product->product_origin,
+                        'about'=> $product->about,
+                        'title'=> $product->title,
                     ];
                 });
 
@@ -92,28 +93,15 @@ class ProductController extends Controller
             $pharmacyId = Auth::user()->pharmacy_id;
 
             // Retrieve products with the same pharmacy_id
-            $products = DB::table('products')
-                ->select(
-                    'id',
-                    'category',
-                    'name',
-                    'code',
-                    'description',
-                    'effective_material',
-                    'price',
-                    'discount',
-                    'image'
-                )
+            $products = Product::with('pharmacy')
                 ->where('pharmacy_id', $pharmacyId)
                 ->get();
 
-            $imageBaseUrl = env('APP_URL')  ; // Retrieve the base URL from .env
-
             if ($products->count() > 0) {
-                $productsArray = $products->map(function ($product) use ($imageBaseUrl) {
-                    $imageUrl = $imageBaseUrl . $product->image;
+                $productsArray = $products->map(function ($product) {
                     return [
                         'id' => $product->id,
+                        'pharmacy_name'=> $product->pharmacy->name,
                         'category_title' => $product->category,
                         'name' => $product->name,
                         'code' => $product->code,
@@ -121,7 +109,14 @@ class ProductController extends Controller
                         'effective_material' => $product->effective_material,
                         'price' => $product->price,
                         'discount' => $product->discount,
-                        'image' => $imageUrl,
+                        'image' => url($product->image),
+                        'type'=> $product->type,
+                        'product_origin'=> $product->product_origin,
+                        'about'=> $product->about,
+                        'title'=> $product->title,
+                        'is_favorite' => FavoriteProduct::where('product_id', $product->id)
+                        ->where('user_id',Auth::Id())
+                        ->exists(),
                     ];
                 });
 
@@ -131,9 +126,9 @@ class ProductController extends Controller
                 ], 200);
             } else {
                 return response()->json([
-                    'status' => 404,
-                    'error' => 'No products found for the pharmacy.',
-                ], 404);
+                    'status' => 200,
+                    'message' => 'No products found for the pharmacy.',
+                ], 200);
             }
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $validator = $exception->validator;
@@ -149,43 +144,23 @@ class ProductController extends Controller
         }
     }
 
-    public function ProductPharmacyUser(Request $request,$id)
+    public function ProductPharmacyUser(Request $request, $id)
     {
         try {
-            // $validator = Validator::make($request->all(), [
-            //     'pharmacy_id' => 'required|exists:pharmacies,id',
-            // ]);
-
-            // if ($validator->fails()) {
-            //     return response()->json(['error' => "validation error"], 400);
-            // }
-
             // Get the pharmacyId of the user
             $pharmacyId = $id;
 
             // Retrieve products with the same pharmacy_id
             $products = DB::table('products')
-                ->select(
-                    'id',
-                    'category',
-                    'name',
-                    'code',
-                    'description',
-                    'effective_material',
-                    'price',
-                    'discount',
-                    'image'
-                )
                 ->where('pharmacy_id', $pharmacyId)
                 ->get();
 
-            $imageBaseUrl = env('APP_URL')  ; // Retrieve the base URL from .env
-
             if ($products->count() > 0) {
-                $productsArray = $products->map(function ($product) use ($imageBaseUrl) {
-                    $imageUrl = $imageBaseUrl . $product->image;
+                $productsArray = $products->map(function ($product) use ($pharmacyId) {
+                    $imageUrl =url($product->image);
                     return [
                         'id' => $product->id,
+                        'pharmacy_name' => Pharmacy::find($pharmacyId)->name,
                         'category_title' => $product->category,
                         'name' => $product->name,
                         'code' => $product->code,
@@ -194,6 +169,13 @@ class ProductController extends Controller
                         'price' => $product->price,
                         'discount' => $product->discount,
                         'image' => $imageUrl,
+                        'type'=> $product->type,
+                        'product_origin'=> $product->product_origin,
+                        'about'=> $product->about,
+                        'title'=> $product->title,
+                        'is_favorite' => FavoriteProduct::where('product_id', $product->id)
+                            ->where('user_id', Auth::id())
+                            ->exists(),
                     ];
                 });
 
@@ -220,6 +202,7 @@ class ProductController extends Controller
             ], 400);
         }
     }
+
 
 
 
@@ -233,12 +216,13 @@ class ProductController extends Controller
     {
         try{
 
-            $product = Product::find($id);
+            $product = Product::find($id)->with('pharmacy');
             if($product) {
                 return response()->json([
                     'status' => 200,
                     'product' => [
                         'id' => $product->id,
+                        'pharmacy_name'=> $product->pharmacy->name,
                         'category' => $product->category,
                         'name' => $product->name,
                         'code' => $product->code,
@@ -247,6 +231,13 @@ class ProductController extends Controller
                         'price' => $product->price,
                         'discount' => $product->discount,
                         'image' => url($product->image),
+                        'type'=> $product->type,
+                        'product_origin'=> $product->product_origin,
+                        'about'=> $product->about,
+                        'title'=> $product->title,
+                        'is_favorite' => FavoriteProduct::where('product_id', $product->id)
+                        ->where('user_id',Auth::Id())
+                        ->exists(),
                     ]
                 ], 200);
             } else {
@@ -281,7 +272,7 @@ class ProductController extends Controller
             $pharmacyId = Auth::user()->pharmacy_id;
 
             $validator = Validator::make($request->all(), [
-                'category_id' => 'required|exists:categories,id',
+                'category_id' => 'required|exists:category',
                 'name' => 'required',
                 'description' => 'required',
                 'price' => 'required|numeric',
@@ -289,9 +280,11 @@ class ProductController extends Controller
                 //'product_origin' => 'required',
                 'effective_material' => 'required',
                 'code' => 'required',
-                // 'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
-
+            if ($request->hasFile('image') == null) {
+                return response()->json(['error' => 'image not valid',]);
+            }
             $category = Category::find($request->category_id);
             if (!$category) {
                 return response()->json(['error' => "Category not found"], 404);
@@ -345,8 +338,13 @@ class ProductController extends Controller
     public function update(Request $request, $id)
     {
         try{
-
+            $user = Auth::user();
             $product = Product::findOrFail($id);
+
+            if($product->pharmacy_id != $user->pharmacy_id) {
+                return response()->json(['status'=> 400,'error' => 'not your pharmacy product'],400);
+            }
+
             $request->validate([
                 'category_id' => 'required|exists:categories,id',
                 'name' => 'required',
@@ -356,7 +354,7 @@ class ProductController extends Controller
                 //'product_origin' => 'required',
                 'effective_material' => 'required',
                 'code' => 'required',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => 'nullable',
             ]);
 
             $product->update([
@@ -370,7 +368,7 @@ class ProductController extends Controller
                 'code'=> $request->code,
             ]);
 
-            if ($product->image) {
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
                 $oldImagePath = public_path('images/product/' . basename($product->image));
                 if (file_exists($oldImagePath)) {
                     unlink($oldImagePath);
@@ -390,7 +388,9 @@ class ProductController extends Controller
 
             $product->save();
                 //for the pharmacy to check the full path
-            $product->image = url($product->image);
+                if ($product->image != null) {
+                    $product->image = url($product->image);
+                }
 
             return response()->json([
                 'status'=> 200,

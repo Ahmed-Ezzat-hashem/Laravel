@@ -65,7 +65,7 @@ class UsersContoller extends Controller
                 'email' => 'required|email|unique:users',
                 'phone' => 'required|unique:users',
                 'password' => 'required|min:6',
-                'role' => 'required|in:1,2'
+                'role' => 'required'
             ]);
 
             $pharmacyId = auth()->user()->pharmacy_id;
@@ -116,32 +116,51 @@ class UsersContoller extends Controller
     // Edit User
     public function editUser(Request $request, $id)
     {
-        try{
+        try {
             $request->validate([
-                'user_name' => 'required|unique:users',
-                'email' => 'required|email|unique:users',
-                'phone' => 'required|unique:users',
+                'user_name' => 'nullable|unique:users,user_name,' . $id,
+                'email' => 'nullable|email|unique:users,email,' . $id,
+                'phone' => 'nullable|unique:users,phone,' . $id,
                 'password' => 'sometimes|min:6', // Optional password change
-                'role' => 'required|in:1,2'
+                'role' => 'required'
             ]);
 
-            $userData = [
-                'user_name' => $request->user_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'role' => $request->role,
-            ];
+            $user = User::findOrFail($id);
+
+            $userData = [];
+
+            // Compare the new data with the existing data
+            if ($request->has('user_name') && $request->user_name !== $user->user_name) {
+                $userData['user_name'] = $request->user_name;
+            }
+
+            if ($request->has('email') && $request->email !== $user->email) {
+                $userData['email'] = $request->email;
+            }
+
+            if ($request->has('phone') && $request->phone !== $user->phone) {
+                $userData['phone'] = $request->phone;
+            }
 
             if ($request->has('password')) {
                 $userData['password'] = Hash::make($request->password);
             }
 
-            $user = User::findOrFail($id);
+            if ($request->has('role') && $request->role !== $user->role) {
+                $userData['role'] = $request->role;
+            }
+
+            if (empty($userData)) {
+                return response()->json([
+                    'message' => 'User data unchanged.'
+                ], 200);
+            }
+
             $user->update($userData);
 
             return response()->json([
                 'user' => $user,
-                'message' => 'User and updated successfully.'
+                'message' => 'User updated successfully.'
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $validator = $exception->validator;
@@ -172,8 +191,17 @@ class UsersContoller extends Controller
             $user->profile()->delete();
             $user->delete();
 
+            $pharmacyId = Auth::user()->pharmacy_id;
+
+            // Retrieve users with the same pharmacy_id
+            $users = DB::table('users')
+                ->select('id', 'user_name', 'email', 'phone', 'role')
+                ->where('pharmacy_id', $pharmacyId)
+                ->get();
+
             return response()->json([
-                'message' => 'User and associated profile deleted successfully.'
+                'message' => 'User and associated profile deleted successfully.',
+                'users' => $users,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $validator = $exception->validator;

@@ -105,6 +105,69 @@ class ProfileController extends Controller
         }
     }
 
+    // public function profilePic(Request $request)
+    // {
+    //     try{
+    //         $userid = Auth::user()->id;
+
+    //         // Validate request data
+    //         $request->validate([
+    //             //'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+    //         ]);
+
+    //         // Find the profile by user ID
+    //         $profile = Profile::where('user_id', $userid)->first();
+
+    //         // Handle profile picture upload
+    //         if ($request->hasFile('profile_picture') && $request->file('profile_picture')->isValid()) {
+    //             // Delete old profile picture if exists
+    //             if ($profile->profile_picture) {
+    //                 $oldImagePath = public_path('images/profile_pictures/') . basename($profile->profile_picture);
+    //                 if (File::exists($oldImagePath)) {
+    //                     File::delete($oldImagePath);
+    //                 }
+    //             }
+
+    //             // Store new profile picture
+    //             $file = $request->file('profile_picture');
+    //             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+    //             $path = public_path('images/profile_pictures');
+    //             $file->move($path, $filename);
+    //             $profile->profile_picture = '/images/profile_pictures/' . $filename;
+    //             $profile->save();
+    //             $profile->profile_picture = url('/images/profile_pictures/' . $filename);
+
+    //             return response()->json(['message' => 'Profile picture updated successfully.'], 200);
+    //         } else {
+    //             return response()->json([
+    //                 'status' => 400,
+    //                 'error' => 'Invalid profile picture.',
+    //             ], 400);
+    //         }
+    //     } catch (\Illuminate\Validation\ValidationException $exception) {
+    //         $validator = $exception->validator;
+    //         $messages = [];
+    //         foreach ($validator->errors()->all() as $error) {
+    //             $messages[] = $error;
+    //         }
+    //         $errorMessage = implode(' and ', $messages);
+
+    //         return response()->json([
+    //             'error' => $errorMessage,
+    //             'headers' => $request->header(),
+    //             'params' => $request->all(),
+    //             'name' => $request->input('name'),
+    //             'body' => $request->getContent(),
+    //         ], 400);
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'status' => 500,
+    //             'error' => 'Internal server error',
+    //             // 'message' => $th->getMessage(), // Include the error message in the response
+    //         ], 500);
+    //     }
+    // }
+
     public function profilePic(Request $request)
     {
         try{
@@ -119,7 +182,7 @@ class ProfileController extends Controller
             $profile = Profile::where('user_id', $userid)->first();
 
             // Handle profile picture upload
-            if ($request->hasFile('profile_picture') && $request->file('profile_picture')->isValid()) {
+            if ($request->hasFile('profile_picture')) {
                 // Delete old profile picture if exists
                 if ($profile->profile_picture) {
                     $oldImagePath = public_path('images/profile_pictures/') . basename($profile->profile_picture);
@@ -154,10 +217,10 @@ class ProfileController extends Controller
 
             return response()->json([
                 'error' => $errorMessage,
-                'headers' => $request->header(),
-                'params' => $request->all(),
-                'name' => $request->input('name'),
-                'body' => $request->getContent(),
+                // 'headers' => $request->header(),
+                // 'params' => $request->all(),
+                // 'name' => $request->input('name'),
+                // 'body' => $request->getContent(),
             ], 400);
         } catch (\Throwable $th) {
             return response()->json([

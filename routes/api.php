@@ -41,7 +41,6 @@ Route::group([],function () {
         Route::post('/register-verify', 'otpVerfication');
         Route::post('/resend-otp','resendOtp');
         Route::post('/resend-otp-pw','resendOtpPW');
-
         Route::post('/register-pharmacy', 'registerPharmacy');
         //login
         Route::post('/login-username', 'LoginByUserName');
@@ -54,33 +53,20 @@ Route::group([],function () {
         Route::post('password/forgot-password', 'forgotPassword');
         Route::post('password/otp', 'passwordResetOtp');
         Route::post('password/reset', 'passwordReset');
-
     });
     Route::controller(socialAuthController::class)->group(function () {
-
         Route::get('/login-google', 'redirectToGoogleProvider');
         Route::get('/auth/google/callback', 'handleGoogleCallback');
-
         Route::get('/login-facebook', 'redirectToFacebookProvider');
         Route::get('/auth/facebook/callback', 'handleFacebookCallback');
     });
 
 });
-// Route::controller(ProductController::class)->group(function () {
-//     Route::get('/products', 'index');
-//     Route::get('/category/{categoryId}', 'bycat');
-//     Route::get('/products-Pharmacy', 'ProductPharmacy');
-//     Route::get('/product/{id}', 'show');
-//     Route::get('/search-by-name','searchByName');
-//     Route::get('/search-by-code', 'searchByCode');
-//     Route::get('/search-by-color-and-shape','searchByColorAndShape');
-// });
-
 // Protected Routes
 Route::middleware(['checkToken'])->group(function () {
     // Users
     Route::get('/user', [UsersContoller::class, 'authUser']);
-    Route::middleware('checkAdmin')->controller(UsersContoller::class)->group(function () {
+    Route::controller(UsersContoller::class)->group(function () {
         Route::get('/users', 'GetUsers');
         Route::get('/user/{id}', 'getUser');
         Route::post('/user/edit/{id}', 'editUser');
@@ -90,7 +76,7 @@ Route::middleware(['checkToken'])->group(function () {
 
 //-----------------------------------------------------------------------------------------------
     //Category Manger
-    Route::middleware('checkAdmin')->controller(CategoryController::class)->group(function () {
+    Route::controller(CategoryController::class)->group(function () {
         Route::post('/category/edit/{id}', 'update');
         Route::post('/category/add', 'store');
         Route::delete('/category/{id}', 'destroy');
@@ -118,7 +104,7 @@ Route::middleware(['checkToken'])->group(function () {
         //product of category
         Route::get('/products-category/{categoryId}', 'bycat');
         //products of pharmacy for admin get his products
-        Route::get('/products-Pharmacy/{id}', 'ProductPharmacy');
+        Route::get('/products-Pharmacy', 'ProductPharmacy');
         //all products of pharmacy for user get product of specific pharmacy
         Route::get('/products-Pharmacy-user/{id}', 'ProductPharmacyUser');
         Route::get('/product/{id}', 'show');
@@ -140,6 +126,8 @@ Route::middleware(['checkToken'])->group(function () {
     Route::controller(CartController::class)->group(function () {
         Route::get('/cart' , 'index');
         Route::post('/cart', 'store');
+        Route::post('/cart_add/{id}', 'addOne');
+        Route::post('/cart_dec/{id}', 'decOne');
         Route::post('/cart/{id}', 'update');
         Route::delete('/cart/{id}', 'destroy');
         Route::post('/checkout', 'checkout');
@@ -150,6 +138,7 @@ Route::middleware(['checkToken'])->group(function () {
     // Order
     Route::controller(OrderController::class)->group(function () {
         Route::get('/orders','index');
+        Route::get('/orders-user','indexuser');
         Route::post('/order/{id}','updateOrderStatus');
         Route::delete('/order/{id}','destroy');
 

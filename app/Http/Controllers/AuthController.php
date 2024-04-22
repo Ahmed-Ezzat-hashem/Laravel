@@ -85,9 +85,9 @@ class AuthController extends Controller
                 'company_working_hours' =>'required',
                 'company_manager_name' =>'required',
                 'company_manager_phone' =>'required',
-                'commercial_register' =>'required|file|mimes:pdf|max:10240',
-                'tax_card' =>'required|file|mimes:pdf|max:10240',
-                'company_license' =>'required|file|mimes:pdf|max:10240',
+                // 'commercial_register' =>'required|file|mimes:pdf|max:10240',
+                // 'tax_card' =>'required|file|mimes:pdf|max:10240',
+                // 'company_license' =>'required|file|mimes:pdf|max:10240',
             ]);
 
             $user = User::create([
@@ -115,8 +115,6 @@ class AuthController extends Controller
                 $path = public_path('images/commercial_register');
                 $file->move($path, $filename);
                 $user->commercial_register = 'images/commercial_register/' . $filename;
-            } else {
-                return response()->json(['error' => 'Commercial register file not found or invalid.'], 400);
             }
 
             if ($request->hasFile('tax_card') && $request->file('tax_card')->isValid()) {
