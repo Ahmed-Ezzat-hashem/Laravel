@@ -130,6 +130,7 @@ class ProductController extends Controller
                     'message' => 'No products found for the pharmacy.',
                 ], 200);
             }
+
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $validator = $exception->validator;
             $messages = [];
